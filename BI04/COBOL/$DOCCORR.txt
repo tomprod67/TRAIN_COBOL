@@ -1,0 +1,34 @@
+-------------------------------------------------------------------------------
+|           LISTE des corrections dans le pds .USERTST.BI04.ECHANGE           |
+|-----------------------------------------------------------------------------|
+| exercices  |  pref members corrections      |   commentaires                |
+|            |                                |                               |
+|-----------------------------------------------------------------------------|
+|            |                                |                               |
+| TR??CB01   |  CB01*                         |                               |
+| TR??CB02   |  CB02*                         |                               |
+| TR??CB03   |  CB03*                         |                               |
+| TR??CB04   |  CB04*                         |                               |
+| TR??CB05   |  CB05*                         |                               |
+| TR??CB06   |  CB06*                         |                               |
+| TR??CB07   |  CB07*                         |                               |
+| TR??CB08   |  CB08*                         |                               |
+| TR??CB09   |  CB09*                         |                               |
+| TR??CB10   |  CB10*                         |                               |
+| TR??CB11   |  CB11*                         |                               |
+| TR??CXCC   |  CBCX*    CBMP*                |                               |
+| CI??CMNU   |  CBXA*    CBMP*                |                               |
+| CI??LIVS   |  CBXB*    CBMP*                |                               |
+| CI??BRVS   |  CBXc*    CBMP*                |                               |
+| CI??ADVS   |  CBXd*    CBMP*                |                               |
+| CI??MDVS   |  CBXe*    CBMP*                |                               |
+| CI??DLVS   |  CBXf*    CBMP*                |                               |
+| CI??LITS   |  CBXG*    CBMP*                |                               |
+| CI??LIDB   |  CBXH*    CBMP*                |                               |
+| CI??BRDB   |  CBXI*    CBMP*                |  VA VB VC                     |
+| CI??ADDB   |  CBXJ*    CBMP*                |                               |
+| CI??MDDB   |  CBXK*    CBMP*                |                               |
+| CI??DLDB   |  CBXL*    CBMP*                |                               |
+| CI??TERR   |  CIXX*    CYXX*                |                               |
+| CI??TRAC   |  CIXX*    CYXX*                |                               |
+

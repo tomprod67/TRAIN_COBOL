@@ -1,0 +1,33 @@
+      **** CB10VAPG- DB2 SAMPLE BATCH COBOL UNLOAD PROGRAM  ***********
+      *                                                               *
+      *   MODULE NAME = TR43CB10                                      *
+      *                                                               *
+      *   DESCRIPTIVE NAME = DB2                                      *
+      *                      UNLOAD TABLE DB2                         *
+      *                      BATCH SQLDA                              *
+      *                                                               *
+      *---------------------------------------------------------------*
+      /
+       IDENTIFICATION DIVISION.
+      *-----------------------
+       PROGRAM-ID.    TR43CB10.
+      *
+       ENVIRONMENT DIVISION.
+      *
+       CONFIGURATION SECTION.
+       DATA DIVISION.
+      *
+       WORKING-STORAGE SECTION.
+      *      RESERVE NOMBRE POSTES SQLDA MAXI
+       01  SQLDA-POSTES.
+           05  SQLDA-POSTE PIC S9(4) COMP OCCURS 750 TIMES.
+      *      RESERVE LIGNE TABLE MAXI (LONGUEUR + DONNEES)
+       01  RECORD-LIGNE.
+           05 RECORD-LIGNE-LEN PIC S9(8) COMP VALUE 32700.
+           05 RECORD-LIGNE-CHAR PIC X(1) OCCURS 32700 TIMES.
+      *
+       PROCEDURE DIVISION.
+      *
+           CALL 'TR43SP10' USING SQLDA-POSTES RECORD-LIGNE.
+           GOBACK.
+

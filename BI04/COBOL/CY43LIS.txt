@@ -1,0 +1,117 @@
+       01  LISTEI.
+           02  FILLER PIC X(12).
+           02  DIRL    COMP  PIC  S9(4).
+           02  DIRF    PICTURE X.
+           02  FILLER REDEFINES DIRF.
+             03 DIRA    PICTURE X.
+           02  DIRI  PIC X(1).
+           02  NUMBER1L    COMP  PIC  S9(4).
+           02  NUMBER1F    PICTURE X.
+           02  FILLER REDEFINES NUMBER1F.
+             03 NUMBER1A    PICTURE X.
+           02  NUMBER1I  PIC X(6).
+           02  NAME1L    COMP  PIC  S9(4).
+           02  NAME1F    PICTURE X.
+           02  FILLER REDEFINES NAME1F.
+             03 NAME1A    PICTURE X.
+           02  NAME1I  PIC X(20).
+           02  AMOUNT1L    COMP  PIC  S9(4).
+           02  AMOUNT1F    PICTURE X.
+           02  FILLER REDEFINES AMOUNT1F.
+             03 AMOUNT1A    PICTURE X.
+           02  AMOUNT1I  PIC X(8).
+           02  NUMBER2L    COMP  PIC  S9(4).
+           02  NUMBER2F    PICTURE X.
+           02  FILLER REDEFINES NUMBER2F.
+             03 NUMBER2A    PICTURE X.
+           02  NUMBER2I  PIC X(6).
+           02  NAME2L    COMP  PIC  S9(4).
+           02  NAME2F    PICTURE X.
+           02  FILLER REDEFINES NAME2F.
+             03 NAME2A    PICTURE X.
+           02  NAME2I  PIC X(20).
+           02  AMOUNT2L    COMP  PIC  S9(4).
+           02  AMOUNT2F    PICTURE X.
+           02  FILLER REDEFINES AMOUNT2F.
+             03 AMOUNT2A    PICTURE X.
+           02  AMOUNT2I  PIC X(8).
+           02  NUMBER3L    COMP  PIC  S9(4).
+           02  NUMBER3F    PICTURE X.
+           02  FILLER REDEFINES NUMBER3F.
+             03 NUMBER3A    PICTURE X.
+           02  NUMBER3I  PIC X(6).
+           02  NAME3L    COMP  PIC  S9(4).
+           02  NAME3F    PICTURE X.
+           02  FILLER REDEFINES NAME3F.
+             03 NAME3A    PICTURE X.
+           02  NAME3I  PIC X(20).
+           02  AMOUNT3L    COMP  PIC  S9(4).
+           02  AMOUNT3F    PICTURE X.
+           02  FILLER REDEFINES AMOUNT3F.
+             03 AMOUNT3A    PICTURE X.
+           02  AMOUNT3I  PIC X(8).
+           02  NUMBER4L    COMP  PIC  S9(4).
+           02  NUMBER4F    PICTURE X.
+           02  FILLER REDEFINES NUMBER4F.
+             03 NUMBER4A    PICTURE X.
+           02  NUMBER4I  PIC X(6).
+           02  NAME4L    COMP  PIC  S9(4).
+           02  NAME4F    PICTURE X.
+           02  FILLER REDEFINES NAME4F.
+             03 NAME4A    PICTURE X.
+           02  NAME4I  PIC X(20).
+           02  AMOUNT4L    COMP  PIC  S9(4).
+           02  AMOUNT4F    PICTURE X.
+           02  FILLER REDEFINES AMOUNT4F.
+             03 AMOUNT4A    PICTURE X.
+           02  AMOUNT4I  PIC X(8).
+           02  MSG0L    COMP  PIC  S9(4).
+           02  MSG0F    PICTURE X.
+           02  FILLER REDEFINES MSG0F.
+             03 MSG0A    PICTURE X.
+           02  MSG0I  PIC X(39).
+           02  MSG1L    COMP  PIC  S9(4).
+           02  MSG1F    PICTURE X.
+           02  FILLER REDEFINES MSG1F.
+             03 MSG1A    PICTURE X.
+           02  MSG1I  PIC X(39).
+           02  MSG2L    COMP  PIC  S9(4).
+           02  MSG2F    PICTURE X.
+           02  FILLER REDEFINES MSG2F.
+             03 MSG2A    PICTURE X.
+           02  MSG2I  PIC X(39).
+       01  LISTEO REDEFINES LISTEI.
+           02  FILLER PIC X(12).
+           02  FILLER PICTURE X(3).
+           02  DIRO  PIC X(1).
+           02  FILLER PICTURE X(3).
+           02  NUMBER1O  PIC X(6).
+           02  FILLER PICTURE X(3).
+           02  NAME1O  PIC X(20).
+           02  FILLER PICTURE X(3).
+           02  AMOUNT1O  PIC X(8).
+           02  FILLER PICTURE X(3).
+           02  NUMBER2O  PIC X(6).
+           02  FILLER PICTURE X(3).
+           02  NAME2O  PIC X(20).
+           02  FILLER PICTURE X(3).
+           02  AMOUNT2O  PIC X(8).
+           02  FILLER PICTURE X(3).
+           02  NUMBER3O  PIC X(6).
+           02  FILLER PICTURE X(3).
+           02  NAME3O  PIC X(20).
+           02  FILLER PICTURE X(3).
+           02  AMOUNT3O  PIC X(8).
+           02  FILLER PICTURE X(3).
+           02  NUMBER4O  PIC X(6).
+           02  FILLER PICTURE X(3).
+           02  NAME4O  PIC X(20).
+           02  FILLER PICTURE X(3).
+           02  AMOUNT4O  PIC X(8).
+           02  FILLER PICTURE X(3).
+           02  MSG0O  PIC X(39).
+           02  FILLER PICTURE X(3).
+           02  MSG1O  PIC X(39).
+           02  FILLER PICTURE X(3).
+           02  MSG2O  PIC X(39).
+

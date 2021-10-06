@@ -1,0 +1,10 @@
+         20  FILEREC.                                                   24000003
+           25  STAT           PIC X.                                    32000003
+           25  NUMB           PIC X(6).                                 40000003
+           25  NAME           PIC X(20).                                48000003
+           25  ADDRX          PIC X(20).                                56000003
+           25  PHONE          PIC X(8).                                 64000003
+           25  DATEX          PIC X(8).                                 73000003
+           25  AMOUNT         PIC X(8).                                 82000003
+           25  COMMENT        PIC X(9).                                 91000003
+

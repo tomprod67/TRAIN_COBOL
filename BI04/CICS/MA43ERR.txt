@@ -1,0 +1,51 @@
+***********************************************************************
+*                                                                     *
+* MODULE NAME = MA43ERR                                               *
+*                                                                     *
+*---------------------------------------------------------------------*
+***********************************************************************
+         AIF   ('&SYSPARM' EQ 'DSECT').SKIPSD                      @P3A
+         AIF   ('&SYSPARM' EQ 'ADSECT').SKIPSD                     @P3A
+         AIF   ('&SYSPARM' EQ 'TEMPLATE').SKIPSD                   @P3A
+MA43ERRD CSECT                                                     @P3A
+MA43ERRD AMODE 31                                                  @P3A
+MA43ERRD RMODE ANY                                                 @P3A
+.SKIPSD  ANOP ,                                                    @P3A
+MA43ERR  DFHMSD TYPE=&SYSPARM,MODE=INOUT,CTRL=(FREEKB,FRSET),          *
+               LANG=COBOL,TIOAPFX=YES,EXTATT=MAPONLY
+ERREUR  DFHMDI SIZE=(24,80)
+        DFHMDF POS=(4,1),ATTRB=(ASKIP,NORM),LENGTH=26,                 X
+               INITIAL='ACCOUNT FILE: ERROR REPORT'
+        DFHMDF POS=(6,1),ATTRB=(ASKIP,NORM),LENGTH=12,                 X
+               INITIAL='TRANSACTION '
+ETRAN   DFHMDF POS=(6,14),ATTRB=(ASKIP,BRT),LENGTH=4
+        DFHMDF POS=(6,19),ATTRB=(ASKIP,NORM),LENGTH=23,                X
+               INITIAL=' HAS FAILED IN PROGRAM '
+EPGM    DFHMDF POS=(6,43),ATTRB=(ASKIP,BRT),LENGTH=8
+        DFHMDF POS=(6,52),ATTRB=(ASKIP,NORM),LENGTH=11,                X
+               INITIAL=' BECAUSE OF'
+ERSN    DFHMDF POS=(8,1),ATTRB=(ASKIP,BRT),LENGTH=60
+        DFHMDF POS=(10,1),ATTRB=(ASKIP,NORM),LENGTH=8,                 X
+               INITIAL='COMMAND '
+ECMDE   DFHMDF POS=(10,10),ATTRB=(ASKIP,BRT),LENGTH=20
+        DFHMDF POS=(10,31),ATTRB=(ASKIP,NORM),LENGTH=5,                X
+               INITIAL='RESP '
+ERESP   DFHMDF POS=(10,37),ATTRB=(ASKIP,BRT),LENGTH=12
+EFILE   DFHMDF POS=(12,1),ATTRB=(ASKIP,BRT),LENGTH=22
+        DFHMDF POS=(14,1),ATTRB=(ASKIP,NORM),LENGTH=60,                X
+               INITIAL='PLEASE ASK YOUR SUPERVISOR TO CONVEY THIS INFORX
+               MATION TO THE'
+        DFHMDF POS=(15,1),ATTRB=(ASKIP,NORM),LENGTH=17,                X
+               INITIAL='OPERATIONS STAFF.'
+        DFHMDF POS=(17,1),ATTRB=(ASKIP,NORM),LENGTH=64,                X
+               INITIAL='THEN PRESS "CLEAR".  THIS TERMINAL IS NO LONGERX
+                UNDER CONTROL OF'
+        DFHMDF POS=(18,1),ATTRB=(ASKIP,NORM),LENGTH=16,                X
+               INITIAL='THE APPLICATION.'
+*
+*       MESSAGE MAP.
+MESSAGE DFHMDI SIZE=(24,80)
+EMSG    DFHMDF POS=(1,1),ATTRB=(ASKIP,NORM),LENGTH=79
+        DFHMSD TYPE=FINAL
+        END
+

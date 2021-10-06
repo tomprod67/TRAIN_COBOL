@@ -1,0 +1,10 @@
+//SPHSVERF JOB SSY,'VERIFY  EXAMPLES',                                  00001000
+//         MSGCLASS=X,NOTIFY=&SYSUID,REGION=0M                          00002000
+//*                                                                     00003000
+//PRINT    EXEC PGM=IDCAMS                                              00010000
+//SYSPRINT DD  SYSOUT=*                                                 00011000
+//VSAM     DD DSN=CICS.CICSTEST.DFHCSD,DISP=SHR                         00012000
+//SYSIN    DD   *                                                       00020000
+  VERIFY FILE(VSAM)                                                     00020100
+//                                                                      00021000
+

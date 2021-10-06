@@ -1,0 +1,22 @@
+       01  W-CURRENT.
+           05 W-CURR-DATE.
+              10 W-CURR-AAAA    PIC 9(4).
+              10 W-CURR-MM      PIC 9(2).
+              10 W-CURR-JJ      PIC 9(2).
+           05 FILLER REDEFINES  W-CURR-DATE.
+              10 FILLER         PIC XX.
+              10 W-CURR-AMJ     PIC 9(6).
+           05 W-CURR-TIMES.
+              10 W-CURR-HH      PIC 9(2).
+              10 W-CURR-MN      PIC 9(2).
+              10 W-CURR-SS      PIC 9(2).
+              10 W-CURR-MS      PIC 9(2).
+           05 FILLER REDEFINES  W-CURR-TIMES.
+              10 W-CURR-HMS     PIC 9(6).
+              10 FILLER         PIC XX.
+           05 W-CURR-DIFF-GMT   PIC S9(4).
+      *
+      *         PROCEDURE DIVISION
+      *    MOVE FUNCTION CURRENT-DATE TO W-CURRENT.
+      *
+

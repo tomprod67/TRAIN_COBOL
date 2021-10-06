@@ -1,0 +1,94 @@
+**********************************************************************
+*                                                                    *
+*   MODULE NAME = MF431F                                             *
+*                                                                    *
+*   DESCRIPTIVE NAME = IMS MFS FORMAT FOR SAMPLE PROGRAM, DETAIL     *
+*                                                                    *
+*      MACROS         =                                              *
+*         DEV                 - IMS MFS DEVICE DESCRIPTION           *
+*         DFLD                - IMS MFS FIELD  DESCRIPTION           *
+*         DIV                 - IMS MFS DIVISION DESCRIPTION         *
+*         DO                  - IMS MFS GROUPING                     *
+*         DPAGE               - IMS MFS PAGE   DESCRIPTION           *
+*         ENDDO               - IMS MFS END OF GROUPING              *
+*         FMT                 - IMS MFS FORMAT BEGINNING             *
+*         FMTEND              - IMS MFS FORMAT ENDING                *
+*         MFLD                - IMS MFS MESSAGE FIELD                *
+*         MSG                 - IMS MFS MESSAGE DESCRIPTION          *
+*         MSGEND              - IMS MFS MESSAGE ENDING               *
+*         SEG                 - IMS MFS MESSAGE SEGMENT              *
+*                                                                    *
+*   PSEUDOCODE      =                                                *
+*                                                                    *
+*      THIS MODULE CONTAINS NO EXECUTABLE CODE.                      *
+*                                                                    *
+**********************************************************************
+         EJECT
+*
+         PRINT NOGEN
+MF431F   FMT
+         DEV   TYPE=(3270,2),FEAT=IGNORE,SYSMSG=MESSYS,                *
+               PFK=(PFKIN,1='01',                                      *
+               2='02',3='03',8='08',10='10',13='01',                   *
+               14='02',15='03',20='08',22='10'),DSCA=X'00E0'
+         DIV   TYPE=INOUT
+         DPAGE CURSOR=((11,16))
+         DFLD  'OPERATOR INSTRUCTION',POS=(01,10),ATTR=(HI,PROT)
+         DFLD  'AFFICHAGE DU MENU             ',                       *
+               POS=(03,01)
+         DFLD  'LISTE CLIENTS   - SAISIR 1    ',                       *
+               POS=(04,01)
+         DFLD  'CONSULTATION    - SAISIR 2    ',                       *
+               POS=(05,01)
+         DFLD  'AJOUT           - SAISIR 3    ',                       *
+               POS=(06,01)
+         DFLD  'MISE A JOUR     - SAISIR 4    ',                       *
+               POS=(07,01)
+         DFLD  'SUPPRESSION     - SAISIR 5    ',                       *
+               POS=(08,01)
+         DFLD  'ARRET           - SAISIR FIN  ',                       *
+               POS=(09,01)
+         DFLD  'VOTRE CHOIX : ',                                       *
+               POS=(12,01)
+CHOIX    DFLD  POS=(12,16),LTH=07,ATTR=(HI,MOD)         CHOIX
+         DFLD  'ENTER CLIENT: ',                                       *
+               POS=(13,01)
+CLIENT   DFLD  POS=(13,16),LTH=06,ATTR=(HI,MOD)        NUMERO CLIENT
+INFO     DFLD  POS=(22,01),LTH=79,ATTR=PROT            MESSAGE
+MESSYS   DFLD  POS=(23,01),LTH=79,ATTR=PROT            MESSAGE
+         FMTEND
+***********************************************************************
+*     COBOL/SAMPLE APPLICATION OUTPUT DESCRIPTION:  MF431O            *
+***********************************************************************
+*
+MF431O MSG     TYPE=OUTPUT,SOR=(MF431F,IGNORE),NXT=MF431I,FILL=C' '
+         SEG
+         MFLD  CHOIX,LTH=07                            ACTION
+         MFLD  CLIENT,LTH=06                           NUMERO CLIENT
+         MFLD  INFO,LTH=79                             MESSAGE
+         MSGEND
+***********************************************************************
+*     COBOL/SAMPLE APPLICATION INPUT DESCRIPTION:  MF431I             *
+***********************************************************************
+*
+MF431I   MSG    TYPE=INPUT,SOR=(MF431F,IGNORE),NXT=MF431O1
+         SEG
+         MFLD  'Z043   '                               TRANSACT. CODE
+         MFLD  CHOIX,LTH=07                            ACTION
+         MFLD  CLIENT,LTH=06                           NUMERO CLIENT
+         MFLD  PFKIN,LTH=02                            PFK
+         MSGEND
+MF431O1 MSG     TYPE=OUTPUT,SOR=(MF431F,IGNORE),NXT=MF431I1,FILL=C' '
+         SEG
+         MFLD  CHOIX,LTH=07                            ACTION
+         MFLD  CLIENT,LTH=06                           NUMERO CLIENT
+         MFLD  INFO,LTH=79                             MESSAGE
+         MSGEND
+MF431I1 MSG     TYPE=INPUT,SOR=(MF431F,IGNORE),NXT=MF431O1
+         SEG
+         MFLD  CHOIX,LTH=07                            ACTION
+         MFLD  CLIENT,LTH=06                           NUMERO CLIENT
+         MFLD  PFKIN,LTH=02                            PFK
+         MSGEND
+         END
+

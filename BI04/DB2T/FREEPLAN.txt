@@ -1,0 +1,18 @@
+//TRAIN43F    JOB SSY,'BIND     ',                                      JOB03950
+//         MSGCLASS=X,NOTIFY=&SYSUID                                    00000200
+//*                                                                     00000300
+//*             BIND DB2 PROGRAMME ET MAPSET                            00000400
+//*                                                                     00000500
+//*                  PLTR43NN PLAN PROGRAMME (NN = AU CHOIX)            00000800
+//*                                                                     00001000
+//*                                                                     00001100
+//FREEPLAN EXEC PGM=IKJEFT01                                            00001200
+//STEPLIB  DD  DISP=SHR,DSN=DB2B10.SDSNLOAD                             00001300
+//SYSPRINT DD  SYSOUT=*                                                 00001400
+//SYSTSPRT DD  SYSOUT=*                                                 00001500
+//SYSTSIN  DD  *                                                        00001700
+ DSN S(DB2T)                                                            00001800
+ FREE PLAN(TR43BDB2)                                                    00001900
+ END                                                                    00005000
+//*                                                                     00006000
+

@@ -1,0 +1,17 @@
+//TRAIN434  JOB NOTIFY=&SYSUID                                          00000001
+//*                                                                     00000002
+//********************************************************************* 00218400
+//*            RECONSTRUCTION INDEX APRES RESTAURATION SYSCOPY          00219200
+//********************************************************************* 00218400
+//*                                                                     00000002
+//JOBLIB   DD  DSN=DB2B10.SDSNLOAD,DISP=SHR                             00250000
+//*                                                                     01050000
+//*       1: RECOVER TABLESPACE                                         01060000
+//*                                                                     01050000
+//PH00S03 EXEC DSNUPROC,PARM='DB2T,DSNTEX'                              01070000
+//DSNTRACE DD SYSOUT=*                                                  01080000
+//SYSUT1   DD UNIT=SYSDA,SPACE=(4000,(50,50),,,ROUND)                   01090000
+//SYSIN    DD  *                                                        01100000
+ REBUILD INDEX (TRAIN43.XCLIENT)                                        01110000
+//*                                                                     01180000
+

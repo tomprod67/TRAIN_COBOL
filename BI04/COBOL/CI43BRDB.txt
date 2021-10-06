@@ -1,0 +1,453 @@
+       PROCESS CICS('NOCBLCARD')
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. CI43BRVS.
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.
+       INPUT-OUTPUT SECTION.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       77  response     PIC 9(9)  COMP.
+       01  w-controle       PIC X.
+           88 b-controle-ok   VALUE '0'.
+           88 b-controle-ko  VALUE '9'.
+       01  w-action         PIC X.
+           88 b-action-suite  VALUE '0'.
+           88 b-action-abandon  VALUE '9'.
+       01  w-mess-alire     PIC X.
+           88 b-mess-indefini VALUE '9'.
+           88 b-mess-menu-alire VALUE '1'.
+           88 b-mess-detail-alire VALUE '2'.
+       01  w-traitement     PIC X.
+           88 b-consultation  VALUE '1'.
+           88 b-abandon       VALUE '8'.
+           88 b-erreur        VALUE '9'.
+           88 b-rejet         VALUE '8', '9'.
+      *         message ecran menu
+           COPY CY43MNU.
+      *         message ecran detail
+           COPY CY43DET.
+      *         sauvegarde dfhcommarea
+       01 comm-CI43TRAC.
+           COPY CY43TRAC.
+       01 comm-CI43TERR.
+           COPY CY43TERR.
+       01  w-dfhcommarea.
+           COPY CY43comm.
+      *         touches fonction
+           COPY DFHAID.
+      *         attributs champs BMS
+           COPY DFHBMSCA.
+      *         message erreur
+       01  mess-info       pic x(80).
+      *         TR43FCLI VSAM
+       01  w-tr43FCLI       PIC X.
+           88 b-tr43FCLI-abs VALUE '0'.
+           88 b-tr43FCLI-prs VALUE '1'.
+           88 b-tr43FCLI-err VALUE '9'.
+       01  w-cle pic x(6).
+       01  TR43FCLI-enr.
+           COPY CY43fcli.
+           EXEC SQL
+              INCLUDE SQLCA
+           END-EXEC.
+           exec sql
+              include CY43DCLI
+           end-exec.
+       LINKAGE SECTION.
+        01 DFHCOMMAREA PIC X(80).
+       PROCEDURE DIVISION.
+        MAIN-PROGRAMME.
+           PERFORM init THRU init-f.
+           PERFORM init-contexte THRU init-contexte-f.
+           EVALUATE TRUE
+           WHEN b-mess-menu-alire
+              PERFORM trt-message-menu THRU trt-message-menu-f
+           WHEN b-mess-detail-alire
+              PERFORM trt-message-detail THRU trt-message-detail-f
+           WHEN OTHER
+              PERFORM trt-rejet-menu THRU trt-rejet-menu-f
+           END-EVALUATE.
+           GO TO main-programme-fin.
+      *
+      *    Traitement erreur CICS indefinie
+      *
+        MAIN-ERRORS.
+           MOVE 'ERREUR CICS ABANDON TRANSACTON' TO mess-info.
+           PERFORM trt-rejet-menu THRU trt-rejet-menu-f.
+        MAIN-PROGRAMME-FIN.
+           GOBACK.
+
+       INIT.
+      *     handle condition  -  ERROR(main-errors) -
+           EXEC CICS
+             HANDLE CONDITION
+                 ERROR(main-errors)
+           END-EXEC.
+      *
+           SET b-controle-ok TO TRUE.
+       INIT-F.
+           EXIT.
+       init-contexte.
+      *            test des données pré renseignées par CICS
+      *    definition commarea
+      *        test absence de commarea
+           IF EIBCALEN = 0 THEN
+              SET b-mess-menu-alire TO TRUE
+              MOVE SPACES to w-dfhcommarea
+           ELSE
+              SET b-mess-detail-alire TO TRUE
+              MOVE DFHCOMMAREA to w-dfhcommarea
+           END-IF.
+      *    definition action utilisateur
+           EVALUATE TRUE
+      *      test touche de fonction DFHENTER
+           WHEN EIBAID = DFHENTER
+              SET b-action-suite TO TRUE
+      *      test touche de fonction PF3
+           WHEN EIBAID = DFHPF3
+              SET b-action-abandon TO TRUE
+           WHEN OTHER
+              SET b-action-suite TO TRUE
+           END-EVALUATE.
+      *    validation transaction
+           EVALUATE TRUE
+           WHEN b-action-abandon
+              SET b-abandon TO TRUE
+              MOVE 'TRANSACTION ABANDONNEE' TO mess-info
+           WHEN EIBTRNID = 'ZB43'
+              SET b-consultation TO TRUE
+           WHEN OTHER
+              MOVE 'ERREUR TRANSACTION' TO mess-info
+              SET b-erreur TO TRUE
+           END-EVALUATE.
+       init-contexte-F.
+           EXIT.
+       TRT-MESSAGE-MENU.
+           PERFORM receive-menu THRU receive-menu-f.
+           EVALUATE TRUE
+           WHEN b-abandon
+              PERFORM trt-rejet-menu THRU trt-rejet-menu-f
+           WHEN b-consultation
+              PERFORM trt-ecran-init-consultation
+                 THRU trt-ecran-init-consultation-f
+           WHEN OTHER
+              PERFORM trt-rejet-menu THRU trt-rejet-menu-f
+           END-EVALUATE.
+       TRT-MESSAGE-MENU-F.
+           EXIT.
+       TRT-MESSAGE-DETAIL.
+           PERFORM receive-detail THRU receive-detail-f.
+           EVALUATE TRUE
+           WHEN b-abandon
+              PERFORM trt-rejet-menu THRU trt-rejet-menu-f
+           WHEN b-consultation
+              PERFORM trt-ecran-suite-consultation
+                 THRU trt-ecran-suite-consultation-f
+           WHEN OTHER
+              PERFORM trt-rejet-menu THRU trt-rejet-menu-f
+           END-EVALUATE.
+       TRT-MESSAGE-DETAIL-F.
+           EXIT.
+       TRT-REJET-MENU.
+           MOVE keyi to w-cle.
+      *                  Préparation du message OUTPUT ecran MENU
+           MOVE LOW-VALUE TO menuo.
+      *     initialisation attribut DFHBMASB du champ MSG
+           MOVE DFHBMASB TO MSGA.
+      *     initialisation champ MSG
+      *         premier ?   code transaction
+      *         second  ?   champ MSG
+           STRING EIBTRNID ' ' mess-info DELIMITED BY SIZE INTO MSGO.
+           MOVE w-cle TO keyo.
+      *
+      *    envoi ecran MENU du MAPSET MA43MNU
+           EXEC CICS
+               SEND MAP('MENU')
+               MAPSET('MA43MNU')
+               ERASE
+           END-EXEC.
+      *
+      *    utiliser la fonction RETURN
+           EXEC CICS
+               RETURN
+           END-EXEC.
+
+       TRT-REJET-MENU-F.
+           EXIT.
+       CTRLCMDE-SEND.
+      *       test code retour NORMAL
+           IF response NOT = DFHRESP(NORMAL) then
+              MOVE 'SEND erreur CICS' TO mess-info
+              SET b-abandon to TRUE
+           END-IF.
+       CTRLCMDE-SEND-F.
+           EXIT.
+      *
+      *    traitement reception message detail
+      *         reponse : affichage ecran consultation detail client
+      *
+       trt-ecran-suite-consultation.
+           PERFORM send-detail-dataonly
+              THRU send-detail-dataonly-f.
+      *     utilisation fonction RETURN avec transaction du bloc EIB
+      *          avec commarea w-dfhcommarea et longueur 80
+           EXEC CICS
+             RETURN TRANSID(EIBTRNID)
+                COMMAREA(w-dfhcommarea)
+                LENGTH(80)
+           END-EXEC.
+       trt-ecran-suite-consultation-f.
+           EXIT.
+      *
+      *    traitement reception message menu
+      *         reponse : affichage ecran consultation detail client
+      *
+       trt-ecran-init-consultation.
+           PERFORM load-map-detail THRU load-map-detail-f.
+           PERFORM send-detail THRU send-detail-f.
+      *
+           move corresponding STCLIENT to CLIENT-FILEREC.
+           move TR43FCLI-enr to w-dfhcommarea.
+      *     utilisation fonction RETURN avec transaction block EIB
+      *          avec commarea w-dfhcommarea et longueur 80
+           EXEC CICS
+              RETURN TRANSID(EIBTRNID)
+               COMMAREA(w-dfhcommarea)
+               LENGTH(80)
+           END-EXEC.
+       trt-ecran-init-consultation-f.
+           EXIT.
+      *
+      *    gestion des messages
+      *         initialisation message detail
+      *
+       load-map-detail.
+      *                  Preparation du message OUTPUT ecran DETAIL
+           PERFORM initpro-map-detail
+              THRU initpro-map-detail-f.
+           MOVE 'LECTURE CLIENT' TO titleo.
+           MOVE 'PRESS ENTER TO CONTINUE' TO msg3o.
+           PERFORM copy-bi04-map-detail
+              THRU copy-bi04-map-detail-f.
+       load-map-detail-f.
+           EXIT.
+       initpro-map-detail.
+      *     initialisation message @ envoyer
+           MOVE low-value TO DETAILO.
+      *
+      *       ALL FIELD ATTRIBUTES ARE PROTECTED.
+      *
+      *     initialisation attribut de protection DFHBMPRO
+      *             de tous les champs du message @ envoyer
+           MOVE DFHBMPRO TO TITLEA OF DETAILI.
+           MOVE DFHBMPRO TO NUMBA OF DETAILI.
+           MOVE DFHBMPRO TO NAMEA OF DETAILI.
+           MOVE DFHBMPRO TO ADDRA OF DETAILI.
+           MOVE DFHBMPRO TO PHONEA OF DETAILI.
+           MOVE DFHBMPRO TO DATEA OF DETAILI.
+           MOVE DFHBMPRO TO AMOUNTA OF DETAILI.
+           MOVE DFHBMPRO TO COMMENTA OF DETAILI.
+           MOVE DFHBMPRO TO MSG1A OF DETAILI.
+           MOVE DFHBMPRO TO MSG3A OF DETAILI.
+       initpro-map-detail-f.
+           EXIT.
+       copy-bi04-map-detail.
+      *     initialisation des champs du message @ envoyer
+      *             depuis l'enregistrement client TR43FCLI
+           MOVE 'TRANSACTIONX' TO TITLEI OF DETAILI.
+           MOVE CLIENT-NUMB    of TR43FCLI-enr TO NUMBI OF DETAILI.
+           MOVE CLIENT-NAME    of TR43FCLI-enr TO NAMEI OF DETAILI.
+           MOVE CLIENT-ADDRX   of TR43FCLI-enr TO ADDRI OF DETAILI.
+           MOVE CLIENT-PHONE   of TR43FCLI-enr TO PHONEI OF DETAILI.
+           MOVE CLIENT-DATEX   of TR43FCLI-enr TO DATEI OF DETAILI.
+           MOVE CLIENT-AMOUNT  of TR43FCLI-enr TO AMOUNTI OF DETAILI.
+           MOVE CLIENT-COMMENT of TR43FCLI-enr TO COMMENTI OF DETAILI.
+           MOVE ' ' TO MSG1I OF DETAILI.
+           MOVE ' '  TO MSG3I OF DETAILI.
+       copy-bi04-map-detail-f.
+           EXIT.
+      *
+      *    gestion des messages
+      *         lecture message menu
+      *
+       RECEIVE-MENU.
+      *     utilisation fonction RECEIVE ecran menu mapset MA43MNU
+      *          et code retour dans variable response
+           EXEC CICS
+                RECEIVE MAP('MENU')
+                MAPSET('MA43MNU')
+                RESP(response)
+           END-EXEC.
+           PERFORM ctrlcmde-receive THRU ctrlcmde-receive-f.
+           IF NOT b-abandon THEN
+              PERFORM ctrlmenu THRU ctrlmenu-f
+           END-IF.
+       RECEIVE-MENU-F.
+           EXIT.
+       CTRLCMDE-RECEIVE.
+      *        test code retour different
+      *          MAPFAIL et NORMAL
+           IF response NOT = DFHRESP(MAPFAIL)
+              AND response NOT = DFHRESP(NORMAL) then
+              MOVE 'ERREUR receive' TO mess-info
+              SET b-abandon TO TRUE
+           END-IF.
+       CTRLCMDE-RECEIVE-F.
+           EXIT.
+       CTRLMENU.
+           IF keyl NOT = 6
+              SET b-abandon TO TRUE
+              MOVE 'ERREUR longueur cle' TO mess-info
+           END-IF.
+           IF b-controle-ok THEN
+              move keyi  to w-cle
+              PERFORM ctrlfich THRU ctrlfich-f
+           END-IF.
+       CTRLMENU-F.
+           EXIT.
+       CTRLFICH.
+           PERFORM read-bi04 THRU read-bi04-f.
+           EVALUATE TRUE
+           WHEN b-TR43FCLI-abs
+              SET b-abandon TO TRUE
+              MOVE 'client absent' TO mess-info
+           WHEN b-TR43FCLI-prs
+              MOVE 'client present' TO mess-info
+           WHEN OTHER
+              SET b-abandon TO TRUE
+              MOVE 'read erreur CICS' TO mess-info
+           END-EVALUATE.
+       CTRLFICH-F.
+           EXIT.
+      *
+      *    gestion des messages
+      *         lecture message detail
+      *
+       RECEIVE-DETAIL.
+      *     utilisation fonction RECEIVE ecran detail mapset MA43DET
+      *          et code retour dans variable response
+           EXEC CICS
+                RECEIVE MAP('detail')
+                MAPSET('MA43DET')
+                RESP(response)
+           END-EXEC.
+           PERFORM ctrlcmde-receive THRU ctrlcmde-receive-f.
+       RECEIVE-DETAIL-F.
+           EXIT.
+      *
+      *    gestion des messages
+      *         envoi message detail
+      *
+       SEND-DETAIL.
+      *     utilisation fonction SEND ecran detail mapset MA43DET
+      *           effacement ecran avant affichage
+      *           code retour dans variable response
+           EXEC CICS
+                 SEND MAP('detail')
+                 MAPSET('MA43DET')
+                 ERASE
+                 RESP(response)
+           END-EXEC.
+           PERFORM ctrlcmde-send THRU ctrlcmde-send-f.
+       SEND-DETAIL-F.
+           EXIT.
+       send-detail-dataonly.
+      *     utilisation fonction SEND ecran detail mapset MA43DET
+      *           avec envoi des donnees uniquement
+           EXEC CICS
+                SEND MAP('detail')
+                MAPSET('MA43DET')
+                dataonly
+           END-EXEC.
+           PERFORM ctrlcmde-send THRU ctrlcmde-send-f.
+       send-detail-dataonly-f.
+           EXIT.
+      *
+      *                gestion fichier TR43FCLI
+      *
+       read-bi04.
+      *
+      *     utilisation READ ficher VSAM TR43FCLI
+      *         dans variable TR43FCLI-enr
+      *         cle w-cle
+      *         code retour dans variable response
+           exec sql
+              select *
+              into :stclient
+              from CLIENT
+              where NUMB = :w-cle
+           end-exec.
+           PERFORM ctrlcmde-read THRU ctrlcmde-read-f.
+       read-bi04-f.
+           EXIT.
+       ctrlcmde-read.
+           EVALUATE sqlcode
+      *         test code retour cle trouvee  normal
+           WHEN 0
+           WHEN 1
+              SET b-TR43FCLI-prs TO TRUE
+              perform appel-CI43trac
+      *         test code retour cle non trouvee
+           WHEN 100
+              SET b-TR43FCLI-abs TO TRUE
+           WHEN OTHER
+              MOVE 'READ TRANSACTION TERMINATED' TO mess-info
+              SET b-TR43FCLI-err TO TRUE
+              perform appel-CI43terr
+           END-EVALUATE.
+       ctrlcmde-read-f.
+           EXIT.
+       FIN.
+           EXIT.
+       FIN-F.
+           EXIT.
+       appel-CI43trac.
+      *       COPY COMMAREA cy43trac
+           MOVE SPACES      TO comm-CI43trac.
+           MOVE 'CI43TRAC'  TO td43-pgm.
+      *       date EIB
+           MOVE EIBDATE     TO td43-day.
+      *       heure EIB
+           MOVE EIBTIME     TO td43-time.
+      *       code transaction EIB
+           MOVE EIBTRNID    TO td43-trnid.
+      *       identifiant terminal EIB
+           MOVE EIBAID      TO td43-terml.
+      *       utilisation appel sous-programme CICS
+      *          definition WSS
+      *             01  comm-ci43trac.
+      *                 COPY cy43TRAC.
+      *       PROGRAM CI43TRAC
+      *       AREA comm-ci43trac
+      *       LENGTH utilisation instruction COBOL LENGTH OF
+           EXEC CICS
+                LINK PROGRAM ('CI43TRAC')
+                COMMAREA(comm-ci43trac)
+                LENGTH(Length of comm-ci43trac)
+           END-EXEC.
+      *       utilisation appel sous-programme CICS CI43TERR
+      *       AVEC COMMAREA comm-CI43terr
+      *          definition WSS
+      *             01  comm-ci43terr.
+      *                 COPY cy43terr.
+       appel-CI43terr.
+           MOVE 'CI43TERR'  TO comm-pgmid.
+      *       code fonction EIB
+           MOVE EIBFN       TO comm-fn.
+      *       code reponse EIB
+           MOVE EIBRCODE    TO comm-rcode.
+      *       code fonction EIB
+           MOVE EIBFN       TO comm-cmde.
+      *       code retour interne EIB
+           MOVE EIBRESP     TO comm-resp.
+      *       appel programme CI43TERR
+      *       LINK
+      *       PROGRAM CI43TERR
+      *       COMMAREA comm-ci43terr
+      *       LENGTH utilisation instruction COBOL LENGTH OF
+           EXEC CICS
+                LINK PROGRAM ('CI43TERR')
+                COMMAREA(comm-ci43terr)
+                LENGTH(Length of comm-ci43terr)
+           END-EXEC.
+

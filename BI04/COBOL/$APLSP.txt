@@ -1,0 +1,76 @@
+      *---------------------------------------------------------------- 00000103
+      *---------------------------------------------------------------- 00000203
+      *       utilisation appel sous-programme CICS ABEND CI43TERR      00001009
+      * WSS                                                             00002003
+      *       01  comm-ci43terr.                                        00003009
+      *           COPY cy43terr.                                        00004009
+      * PROCEDURE DIVISION                                              00004103
+      *       PERFORM appel-CI43terr                                    00004209
+      *          THRU appel-CI43terr-f.                                 00004309
+      *---------------------------------------------------------------- 00004403
+      *       appel sous-programme CICS CI43TERR                        00005009
+      *            COMMAREA comm-CI43terr                               00006009
+      *            LENGTH(longueur comm-CI43terr)                       00007009
+      *---------------------------------------------------------------- 00008003
+      *            paragraphe @ ins{rer dans la source                - 00009003
+      *                et @ compl{ter                                 - 00009103
+      *---------------------------------------------------------------- 00009203
+       appel-CI43terr.                                                  00010009
+      *       COPY COMMAREA cy43terr                                    00011009
+           MOVE 'CI43TERR'  TO comm-pgmid.                              00012009
+      *       code fonction EIB                                         00013000
+           MOVE ?           TO comm-fn.                                 00013100
+      *       code r{ponse EIB                                          00013200
+           MOVE ?           TO comm-rcode.                              00014000
+      *       code fonction EIB                                         00014100
+           MOVE ?           TO comm-cmde.                               00015000
+      *       code retour interne EIB                                   00015102
+           MOVE ?           TO comm-resp.                               00016000
+      *       appel sous-programme CICS CI43TERR                        00016109
+      *            COMMAREA comm-CI43terr                               00017109
+      *            LENGTH(longueur comm-CI43terr)                       00017209
+           EXEC CICS                                                    00018001
+                ?                                                       00019001
+           END-EXEC.                                                    00040000
+       appel-CI43terr-F.                                                00050009
+           EXIT.                                                        00060002
+      *---------------------------------------------------------------- 00060103
+      *---------------------------------------------------------------- 00060203
+      *       utilisation appel sous-programme CICS creation TD         00061003
+      * WSS                                                             00062003
+      *       01  comm-ci43trac.                                        00063009
+      *           COPY cy43trac.                                        00064009
+      * PROCEDURE DIVISION                                              00064103
+      *       PERFORM appel-CI43terr                                    00064209
+      *          THRU appel-CI43terr-f.                                 00064309
+      *---------------------------------------------------------------- 00064403
+      *       appel sous-programme CICS CI43TRAC                        00065109
+      *            COMMAREA comm-CI43trac                               00067009
+      *            LENGTH(longueur comm-CI43trac)                       00068009
+      *---------------------------------------------------------------- 00069003
+      *            paragraphe @ ins{rer dans la source                - 00069103
+      *                et @ compl{ter                                 - 00069203
+      *---------------------------------------------------------------- 00069303
+       appel-CI43trac.                                                  00070009
+      *       COPY COMMAREA TRACAERA                                    00080002
+           MOVE SPACES      TO comm-CI43trac.                           00090009
+           MOVE 'CI43TRAC'  TO td43-pgm.                                00091009
+      *       date EIB                                                  00092002
+           MOVE ?           TO td43-day.                                00100009
+      *       heure EIB                                                 00101002
+           MOVE ?           TO td43-time.                               00110009
+      *       code transaction EIB                                      00111002
+           MOVE ?           TO td43-trnid.                              00120009
+      *       identifiant terminal EIB                                  00121002
+           MOVE ?           TO td43-terml.                              00130009
+      *       appel sous-programme CICS CI43TRAC                        00140009
+      *            COMMAREA comm-CI43trac                               00140109
+      *            LENGTH(longueur comm-CI43trac)                       00140209
+           EXEC CICS                                                    00144002
+                ?                                                       00145002
+           END-EXEC.                                                    00146002
+       appel-CI43trac-F.                                                00200009
+           EXIT                                                         00210000
+      *---------------------------------------------------------------- 00220003
+      *---------------------------------------------------------------- 00230003
+

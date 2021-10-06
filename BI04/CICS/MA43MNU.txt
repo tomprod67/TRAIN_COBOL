@@ -1,0 +1,44 @@
+         TITLE 'CLIENT - MAP FOR OPERATOR INSTRUCTIONS - COBOL'         06000006
+*********************************************************************** 06100000
+*                                                                     * 06200000
+* MODULE NAME = MA43MNU                                               * 06300008
+*                                                                     * 06400000
+*---------------------------------------------------------------------* 07400000
+*                                                                     * 07600000
+* CHANGE ACTIVITY :                                                   * 07800000
+*                                                                     * 08600000
+*********************************************************************** 08800000
+         AIF   ('&SYSPARM' EQ 'DSECT').SKIPSD                      @P2A 08820000
+         AIF   ('&SYSPARM' EQ 'ADSECT').SKIPSD                     @P2A 08850000
+         AIF   ('&SYSPARM' EQ 'TEMPLATE').SKIPSD                   @P3A 08860000
+MA43MNUC CSECT                                                     @P2A 08880008
+MA43MNUC AMODE 31                                                  @P2A 08910008
+MA43MNUC RMODE ANY                                                 @P2A 08940008
+.SKIPSD  ANOP ,                                                    @P2A 08970000
+MA43MNU  DFHMSD TYPE=&SYSPARM,MODE=INOUT,CTRL=(FREEKB,FRSET),          *09000008
+               LANG=COBOL,TIOAPFX=YES,EXTATT=MAPONLY,COLOR=BLUE         12000000
+MENU     DFHMDI SIZE=(12,40)                                            15000000
+         DFHMDF POS=(1,10),LENGTH=21,INITIAL='OPERATOR INSTRUCTIONS',  *18000000
+               HILIGHT=UNDERLINE                                        21000000
+         DFHMDF POS=(1,32),LENGTH=1,ATTRB=PROT                          22000000
+         DFHMDF POS=(3,1),LENGTH=29,INITIAL='OPERATOR INSTR - ENTER MEN*24000000
+               U'                                                       27000000
+         DFHMDF POS=(4,1),LENGTH=38,INITIAL='FILE INQUIRY   - ENTER ZA?*30000002
+               ? AND NUMBER'                                            33000002
+         DFHMDF POS=(5,1),LENGTH=38,INITIAL='FILE BROWSE    - ENTER ZB?*36000002
+               ? AND NUMBER'                                            40000002
+         DFHMDF POS=(6,1),LENGTH=38,INITIAL='FILE ADD       - ENTER ZC?*44000002
+               ? AND NUMBER'                                            48000002
+         DFHMDF POS=(7,1),LENGTH=38,INITIAL='FILE UPDATE    - ENTER ZD?*52000002
+               ? AND NUMBER'                                            56000002
+         DFHMDF POS=(11,1),LENGTH=18,INITIAL='ENTER TRANSACTION:'       64000004
+         DFHMDF POS=(11,20),LENGTH=4,ATTRB=IC,COLOR=GREEN,             *68000004
+               HILIGHT=REVERSE                                          72000000
+         DFHMDF POS=(11,25),LENGTH=6,INITIAL='NUMBER'                   76000004
+KEY      DFHMDF POS=(11,32),LENGTH=6,ATTRB=NUM,COLOR=GREEN,            *80000004
+               HILIGHT=REVERSE                                          84000000
+         DFHMDF POS=(11,39),LENGTH=1                                    88000004
+MSG      DFHMDF POS=(12,1),LENGTH=39,INITIAL='PRESS CLEAR TO EXIT'      88010004
+         DFHMSD TYPE=FINAL                                              92000000
+         END                                                            96000000
+

@@ -1,0 +1,8 @@
+      *              UTILISATION SOUS PROGRAMME TR43SPX6
+       01  CY43SPX6-ECHANGE.
+           10 CY43SPX6-FONCTION    PIC X(8).
+           10 CY43SPX6-LIGNE.              .
+              10 CY43SPX6-CLE      PIC X(6).
+              10 FILLER            PIC X(72).
+           10 CY43SPX6-SQLCODE     PIC S9(9).
+

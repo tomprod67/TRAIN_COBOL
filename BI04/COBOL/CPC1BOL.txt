@@ -1,0 +1,12 @@
+//TRAIN43C    JOB SSY,'COMPI COB',                                      00010001
+//         MSGCLASS=X,NOTIFY=&SYSUID                                    00011000
+//*                                                                     00012000
+//*             COMPIL COBOL AVEC DEBUG TOOL                            00012100
+//*                                                                     00012200
+//MESPROC    JCLLIB ORDER=(FORM.BI04.PROCLIB,                           00012300
+//           FORM.BI04.PROCLIB.CICS,                                    00012400
+//           FORM.BI04.PROCLIB.IMS)                                     00012500
+//*                                                                     00012600
+//COMPCALL     EXEC PC1BOL,MEMBER=TR43BTCH                              00012701
+//*                                                                     00012800
+

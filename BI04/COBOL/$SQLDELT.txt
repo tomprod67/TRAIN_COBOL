@@ -1,0 +1,15 @@
+      *                                **PERFORM ERASE
+           EXEC SQL DELETE FROM FBMVDEPT
+              WHERE DEPTNO=:PDEPT.DEPTNO
+           END-EXEC.
+      *                                **DEPARTMENT SUCCESSFULLY ERASED
+           IF SQLCODE = 0 THEN
+              MOVE ' ' TO PREV
+              MOVE '013I' TO MSGCODE
+              GO TO MCEMSG.
+      *                                **DEPARTMENT DOES NOT EXIST,
+      *                                **ERASE NOT DONE
+           IF SQLCODE = +100 THEN
+              MOVE '016E' TO MSGCODE
+              GO TO MCEMSG.
+

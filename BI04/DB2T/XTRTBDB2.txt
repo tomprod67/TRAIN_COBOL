@@ -1,0 +1,35 @@
+//TRAIN43C  JOB 1,'TRAIN43',MSGCLASS=X,REGION=0M,                       JOB03188
+//       MSGLEVEL=(1,1),CLASS=A,
+//         NOTIFY=&SYSUID
+//********************************************************************* 00218400
+//*                                                                     00219200
+//JOBLIB  DD  DSN=DB2B10.SDSNLOAD,DISP=SHR                              00220000
+//*                                                                     00230000
+//********************************************************************* 00240000
+//*                                                                     01420000
+//*
+//DELETE   EXEC PGM=IEFBR14
+//SYSPRINT DD DSN=TRAIN43.XTRTDB2.LOG,
+//         DISP=(MOD,DELETE,DELETE),UNIT=3390,
+//         DCB=(RECFM=FB,LRECL=92),
+//         SPACE=(TRK,(5,5),RLSE)
+//*
+//TRT     EXEC PGM=IKJEFT01,DYNAMNBR=20
+//DBRMLIB  DD DSN=TRAIN43.BI04.DBRM,DISP=SHR
+//SYSTSPRT DD SYSOUT=*
+//SYSTSIN   DD *
+ DSN SYSTEM(DB2T)
+ BIND PLAN(TR43CBY7) MEMBER(TR43CBY7) ACT(REP) ISO(CS) +                01410001
+      ENCODING(EBCDIC) QUALIFIER(TRAIN43)  OWNER(TRAIN43)               01410001
+ RUN PROGRAM(TR43CBY7) PLAN(TR43CBY7) -
+ LIB('CICS.CICSTR01.BI04LOAD')
+//SYSPRINT DD SYSOUT=*
+//SYSUDUMP DD SYSOUT=*
+//SYSIN DD DUMMY
+//*
+//LOGTR43  DD DSN=TRAIN43.XTRTDB2.LOG,
+//         DISP=(MOD,CATLG),UNIT=3390,
+//         DCB=(RECFM=FB,LRECL=92),
+//         SPACE=(TRK,(5,5),RLSE)
+//*
+

@@ -1,0 +1,26 @@
+//TRAIN43B  JOB NOTIFY=&SYSUID                                          00010005
+//*                                                                     00020000
+//*                                                                     00030000
+//JOBLIB   DD  DSN=DB2B10.SDSNLOAD,DISP=SHR                             00040000
+//*                                                                     00050000
+//*                                                                     00060000
+//*        STEP  4: BIND AND RUN PROGRAMS                               00070000
+//*                                                                     00080000
+//PH02CS04 EXEC PGM=IKJEFT01,DYNAMNBR=20,COND=(4,LT)                    00090000
+//DBRMLIB  DD DSN=&SYSUID..BI04.DBRM,DISP=SHR                           00100003
+//SYSTSPRT DD SYSOUT=*                                                  00110000
+//SYSPRINT DD SYSOUT=*                                                  00120000
+//SYSUDUMP DD SYSOUT=*                                                  00130000
+//SYSOUT   DD SYSOUT=*                                                  00140000
+//REPORT   DD SYSOUT=*                                                  00150000
+//SYSIN      DD *                                                       00160000
+ GRANT BIND, EXECUTE ON PLAN TR43DYNA TO PUBLIC;                        00170005
+//SYSTSIN DD *                                                          00180000
+ DSN SYSTEM(DB2T)                                                       00190000
+ BIND PLAN(TR43DYNA) MEMBER(TR43DYNA) ACT(REP) ISO(CS) OWNER(TRAIN43) + 00200005
+      ENCODING(EBCDIC) QUALIFIER(TRAIN43) DYNAMICRULES(BIND)            00210005
+ RUN PROGRAM(DSNTIAD)  PLAN(DSNTIA11) +                                 00220000
+     LIB('SYS2.DB2B10.RUNLIB')                                          00230000
+ END                                                                    00240000
+//*                                                                     00250000
+

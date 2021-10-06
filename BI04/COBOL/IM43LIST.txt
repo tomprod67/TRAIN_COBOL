@@ -1,0 +1,449 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. IM43LIST.
+
+      ******* IM43list - IMS SUBSYSTEM INTERFACE MODULE - COBOL ********
+      *                                                               *
+      *   MODULE NAME = IM43list                                      *
+      *                                                               *
+      *   DESCRIPTIVE NAME = DB2 SAMPLE APPLICATION                   *
+      *                      SUBSYSTEM INTERFACE MODULE               *
+      *                      IMS                                      *
+      *                      COBOL                                    *
+      *                      AFFICHE INFORMATIONS D'UN CLIENT         *
+      *                                                               *
+      ******************************************************************
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.
+       INPUT-OUTPUT SECTION.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+      ****************************************************************
+      *                declaration for ims                           *
+      ****************************************************************
+      *
+       77  gu-fct               PIC X(4) VALUE  'GU  '.
+       77  gn-fct               PIC X(4)  VALUE 'GN  '.
+       77  isrt-fct             PIC X(4) VALUE  'ISRT'.
+       77  chng-fct             PIC X(4) VALUE  'CHNG'.
+       77  roll-fct             PIC X(4) VALUE  'ROLL'.
+       77  rc-no-segment        PIC X(2) VALUE 'QD'.
+       77  rc-no-message        PIC X(2) VALUE 'QC'.
+       77  rc-mess-exist        PIC X(2) VALUE 'CF'.
+      *
+       77  modname              PIC X(8).
+       77  tran-chng            PIC X(8).
+       77  tran-menu            PIC X(8) VALUE 'Z043'.
+       77  new-dest             PIC X(8) VALUE 'IM43CMNU'.
+      *
+       77  w-space-ctr          PIC 9(2) COMP.
+       77  w-space-input        PIC X(8) VALUE      SPACES.
+       77  w-space-output       PIC X(8) VALUE      SPACES.
+
+      * SCRATCH PAD AREA
+
+       01  w-spa.
+           05  w-spa-ll         PIC s9(4) COMP.
+           05  w-spa-zzzz       PIC XXXX.
+           05  w-spa-tran       PIC X(8).
+           05  w-spa-imxxcmnu.
+               10 w-spa-choix   PIC X(7).
+               10 w-spa-clecli  PIC X(6).
+           05  w-spa-stclient.
+               10 w-spa-stcle   PIC x(6).
+               10 filler        PIC x(74).
+      ****************************************************************
+      *                declaration dialogue                          *
+      ****************************************************************
+       01  w-controle       PIC X.
+           88 w-controle-ok   VALUE  '0'.
+           88 w-controle-ko  VALUE  '9'.
+       01  w-action         PIC X.
+           88 b-action-suite  VALUE  '0'.
+           88 b-action-previous VALUE  '7'.
+           88 b-action-next     VALUE  '8'.
+           88 b-action-abandon  VALUE  '9'.
+       01  w-trt            PIC X.
+           88 b-trt-consult   VALUE  '1'.
+           88 b-trt-reaffich  VALUE  '2'.
+           88 b-trt-goback    VALUE  '5'.
+           88 b-trt-fin       VALUE  '6'.
+           88 b-trt-abandon   VALUE  '5' '6' '8'.
+           88 b-trt-erreur    VALUE  '9'.
+           88 b-trt-rejet     VALUE  '8', '9'.
+           88 b-trt-exit      VALUE  '5' '6' '7' '8' '9'.
+       01  mess-info       PIC X(80).
+      ****************************************************************
+      *                declaration table client                      *
+      ****************************************************************
+      *
+      *------table db2 client
+      *
+       01  cle-lec-client PIC X(6).
+       01  cle-fin-client PIC X(6).
+       77  cursor-client pic 9.
+       01  w-client             PIC X.
+           88 b-client-ok       VALUE  'y'.
+           88 b-client-absent   VALUE  'n'.
+           88 b-client-erreur   VALUE  'x'.
+           EXEC SQL
+             INCLUDE cy43dcli
+           end-EXEC.
+           EXEC SQL
+             INCLUDE SQLCA
+           end-EXEC.
+           EXEC SQL
+              DECLARE CLIENT-CURSOR CURSOR FOR
+              SELECT
+                numb,         name,         amount
+              FROM client
+              WHERE numb >= :CLE-LEC-CLIENT
+              FETCH FIRST 5 ROWS ONLY
+           END-EXEC.
+      ****************************************************************
+      *       declaration for input:  midname MF433FO
+      ****************************************************************
+      *
+       01  out-MF433FO.
+           05 MF433FO-ll        pic s9(4) COMP.
+           05 MF433FO-zz        pic XX.
+           05 MF433FO-donnees.
+              10 MF433FO-title  pic x(12).
+              10 MF433FO-cli    OCCURS 4.
+                 15 MF433FO-numb   pic x(6).
+                 15 MF433FO-name   PIC X(20).
+                 15 MF433FO-amount PIC X(8).
+      *
+      ****************************************************************
+      *       declaration for output: modname MF433FI                *
+      ****************************************************************
+      *
+       01  in-MF433FI.
+           05 MF433FI-ll        PIC s9(4) COMP.
+           05 MF433FI-zz        PIC XX.
+           05 MF433FI-donnees.
+              10 MF433FI-title  PIC X(12).
+              10 MF433FI-cli     OCCURS 4.
+                 15 MF433FI-numb    PIC X(6).
+                 15 MF433FI-name    PIC X(20).
+                 15 MF433FI-amount  PIC X(8).
+              10 MF433FI-PFKIN  PIC XX.
+      *
+      ****************************************************************
+      *       declaration for output: modname MF431o  (menu)         *
+      ****************************************************************
+      *
+       01   out-MF431o.
+            02 MF431o-ll        PIC s9(4) COMP.
+            02 MF431o-zz        PIC XX.
+            02 MF431o-donnees.
+               03 MF431o-choix  PIC X(7).
+               03 MF431o-clecli PIC X(6).
+               03 MF431o-info   PIC X(79).
+      *
+      ****************************************************************
+      * fields sent TO message routine                               *
+      ****************************************************************
+       01  msgcode              PIC X(04).
+
+       01  outmsg               PIC X(69).
+      ****************************************************************
+      *               LINKAGE SECTION                                *
+      ****************************************************************
+       LINKAGE SECTION.
+      ****************************************************************
+      *           DECLARATION FOR IO                                 *
+      ****************************************************************
+      *
+       01  iopcb.
+           02 iopcb-term        PIC X(8).
+           02 filler            PIC X(2).
+           02 iopcb-rc          PIC X(2).
+           02 cdate             PIC X(4).
+           02 ctime             PIC X(4).
+           02 seqnum            PIC X(4).
+           02 iopcb-modname     PIC X(8).
+           02 userid            PIC X(8).
+           02 db2-group         PIC X(8).
+      *
+       01  altpcb.
+           02 altpcb-term       PIC X(8).
+           02 altpcb-filler     PIC X(2).
+           02 altpcb-rc         PIC X(2).
+       PROCEDURE DIVISION.
+      *---------------------
+      *     Initialisation des pointeurs pcb
+           ENTRY 'DLITCBL' USING IOPCB ALTPCB.
+       main-programme.
+           PERFORM main-programme-init.
+
+           PERFORM main-programme-trt.
+
+           PERFORM main-programme-fin.
+       main-programme-init.
+      *    recuperation spa / message
+           Display '=> Recuperation buffer entree'.
+           PERFORM fonction-gu-iopcb.
+           Display '=> Validation buffer entree'.
+           PERFORM fonction-ctrlcmde-gu.
+
+           IF NOT b-trt-abandon THEN
+      *         Move cle buffer to cle local
+              DISPLAY 'Set cle to "' w-spa-clecli '"'
+              MOVE w-spa-clecli TO cle-lec-client
+              if w-spa-stcle = space then
+                MOVE w-spa-clecli to cle-fin-client
+              else
+                MOVE w-spa-stcle  to cle-fin-client
+              end-if
+      *       Only if read previous state of the screen as well as key
+      *       Lecture message application
+              PERFORM fonction-gn-iopcb
+      *       test return code message lu
+              IF iopcb-rc = '  ' and MF433fi-numb(1) NOT = SPACES
+               THEN
+                 MOVE MF433fi-numb(1)   TO cle-lec-client
+              END-IF
+           END-IF.
+       main-programme-trt.
+           perform handle-keyboard.
+           perform process-state.
+
+       main-programme-fin.
+           DISPLAY 'goback'.
+           GOBACK.
+
+      *-traitement erreur ims indéfinie---------------------
+        main-errors.
+           MOVE 'erreur ims abandon transacton' TO mess-info.
+           PERFORM reponse-iopcb.
+
+      *-récupération données buffer-------------------------
+       fonction-gu-iopcb.
+           CALL 'CBLTDLI' USING gu-fct iopcb w-spa.
+           DISPLAY 'im43list-gu spa:' w-spa.
+
+      *-controle acquisition buffer-------------------------
+       fonction-ctrlcmde-gu.
+      *    test return code iopcb
+           EVALUATE iopcb-rc
+      *    ok
+           WHEN '  '
+              SET b-trt-consult TO TRUE
+      *    message non traite
+           WHEN rc-mess-exist
+              SET b-trt-consult TO TRUE
+      *    fin de message
+           WHEN rc-no-message
+              SET b-trt-goback TO TRUE
+      *    etat imprevu
+           WHEN OTHER
+              MOVE 'erreur gu iopcb' TO mess-info
+              SET b-trt-abandon TO TRUE
+           END-EVALUATE.
+
+      *-lecture ecran---------------------------------------
+       fonction-gn-iopcb.
+      *    lecture message in-MF433fi
+           CALL 'CBLTDLI' USING gn-fct iopcb in-MF433fi
+           DISPLAY 'im43list-gn mes:' iopcb-rc ' * ' iopcb-modname
+                   ' * ' in-MF433fi.
+      *-Gestion des touches
+       handle-keyboard.
+      *    definition action utilisateur
+           DISPLAY 'Evaluate pfkin : "' MF433fi-pfkin '"'.
+           EVALUATE MF433fi-pfkin
+           WHEN '  '
+              SET b-action-suite TO TRUE
+           WHEN '03'
+              SET b-action-abandon TO TRUE
+              DISPLAY 'PF3 exit screen'
+           WHEN 'B'
+           WHEN '07'
+              SET b-action-previous TO TRUE
+              DISPLAY 'PF7 previous'
+           WHEN 'F'
+           WHEN '08'
+              SET b-action-next TO TRUE
+              DISPLAY 'PF8 next'
+           WHEN OTHER
+              SET b-action-suite TO TRUE
+           END-EVALUATE.
+
+       process-state.
+           EVALUATE TRUE
+           WHEN b-action-abandon
+                or b-trt-goback
+              DISPLAY "Process stop"
+              MOVE SPACES TO MF431o-donnees
+              MOVE 'Z143'        TO MF431o-choix
+              MOVE w-spa-clecli  TO MF431o-clecli
+              MOVE 'transaction abandonnee'  TO MF431o-info
+              PERFORM reponse-stop
+           WHEN b-action-previous
+              DISPLAY "Process previous"
+              PERFORM process-previous
+           WHEN b-action-next
+              DISPLAY "Process next"
+              PERFORM process-next
+           WHEN b-trt-consult
+           WHEN b-trt-reaffich
+              DISPLAY "Process display"
+              PERFORM process-display
+      *    WHEN b-trt-abandon
+           WHEN OTHER
+              DISPLAY "Process error"
+              MOVE SPACES TO MF431o-donnees
+              MOVE 'Z143'        TO MF431o-choix
+              MOVE w-spa-clecli  TO MF431o-clecli
+              MOVE mess-info     TO MF431o-info
+              PERFORM reponse-stop
+           END-EVALUATE.
+
+       process-previous.
+           continue.
+           exec sql
+            select numb
+            into :cle-lec-client
+            from (
+             select numb from CLIENT
+             where numb < :cle-lec-client
+             order by numb desc
+             fetch first 4 rows only
+            )
+            order by numb
+            fetch first 1 rows only
+           end-exec.
+           display 'New start key' cle-lec-client.
+           evaluate sqlcode
+           when +100
+              SET b-client-absent TO TRUE
+           when 0
+              SET b-client-ok TO TRUE
+           when other
+              SET b-client-erreur TO TRUE
+           END-evaluate.
+           perform process-display.
+       process-next.
+           continue.
+           move cle-fin-client to cle-lec-client.
+           display 'New start key' cle-lec-client.
+           perform process-display.
+       process-display.
+           perform lecture-client.
+           perform reponse-iopcb.
+       load-MF433fo.
+           MOVE 'listing'     TO MF433fo-title.
+           if cursor-client > 0 and cursor-client < 5 then
+               MOVE client-numb   TO MF433fo-numb(cursor-client)
+               MOVE client-name   TO MF433fo-name(cursor-client)
+               MOVE client-amount TO MF433fo-amount(cursor-client)
+           end-if.
+           move client-numb to cle-fin-client.
+
+       lecture-client.
+           DISPLAY 'im43list-db2 :' cle-lec-client.
+           perform lecture-client-init.
+           perform lecture-client-trt until not b-client-ok.
+           perform lecture-client-end.
+       lecture-client-init.
+           EXEC SQL
+              OPEN CLIENT-CURSOR
+           END-EXEC.
+           evaluate sqlcode
+           when +100
+              SET b-client-absent TO TRUE
+              DISPLAY 'Empty cursor'
+           when 0
+              SET b-client-ok TO TRUE
+           when other
+              SET b-client-erreur TO TRUE
+              DISPLAY 'Error cursor : ' sqlcode
+           END-evaluate.
+           move 1 to cursor-client.
+       lecture-client-trt.
+           EXEC SQL
+             fetch CLIENT-CURSOR
+             INTO
+              :client-numb,
+              :client-name,
+              :client-amount
+           END-EXEC.
+           EVALUATE sqlcode
+           when 0
+             SET b-client-ok TO TRUE
+           when +100
+             SET b-client-absent TO TRUE
+             SET b-trt-abandon TO TRUE
+             MOVE 'client absent' TO mess-info
+           when other
+             SET b-client-erreur TO TRUE
+             STRING 'erreur ' cle-lec-client
+                     ' ' iopcb-rc
+                     delimited by size into mess-info
+              SET b-trt-abandon TO TRUE
+           end-evaluate.
+           perform load-MF433fo.
+           add 1 to cursor-client.
+       lecture-client-end.
+           EXEC SQL
+              CLOSE CLIENT-CURSOR
+           END-EXEC.
+           MOVE cle-lec-client to w-spa-clecli.
+           MOVE cle-fin-client to w-spa-stcle.
+      *
+      * procedure reponse via iocpb
+      *
+       reponse-iopcb.
+           CALL 'CBLTDLI' USING isrt-fct iopcb w-spa.
+           IF iopcb-rc NOT = SPACES  THEN
+              STRING 'erreur isrt io spa '  iopcb-rc
+                     DELIMITED BY SIZE INTO mess-info
+              DISPLAY mess-info
+           END-IF.
+           DISPLAY 'im43list-isrt io spa:' w-spa.
+
+           MOVE 'MF433FO' TO modname.
+           MOVE length of out-MF433fo TO MF433fo-ll.
+           CALL 'CBLTDLI' USING isrt-fct IOPCB out-MF433fo modname.
+           IF iopcb-rc NOT = SPACES  THEN
+              STRING 'erreur isrt io mess '   iopcb-rc
+                     '-' modname '-'
+                     DELIMITED BY SIZE INTO mess-info
+              DISPLAY mess-info
+           END-IF.
+           DISPLAY 'im43list-isrt io mes:' out-MF433fo.
+      *
+      * procedure reponse via altpcb
+      *
+       reponse-stop.
+           CALL 'CBLTDLI' using chng-fct altpcb tran-menu
+           IF altpcb-rc NOT = SPACES THEN
+              STRING 'erreur chng sto mess '  altpcb-rc
+                  DELIMITED BY SIZE INTO mess-info
+              DISPLAY 'im43list-' mess-info
+            END-IF.
+           DISPLAY 'im43list-chng sto:' tran-menu.
+           MOVE tran-menu       TO w-spa-tran.
+           CALL 'CBLTDLI' USING isrt-fct altpcb w-spa.
+           IF altpcb-rc NOT = SPACES THEN
+              STRING 'erreur isrt sto spa ' altpcb-rc
+                  DELIMITED BY SIZE INTO mess-info
+              SET b-trt-erreur TO TRUE
+              DISPLAY 'im43list-' mess-info
+           END-IF.
+           DISPLAY 'im43list-isrt sto spa:' w-spa.
+
+           MOVE 'MF431O1' TO modname.
+           MOVE length of out-MF431o TO MF431o-ll.
+           MOVE 'REAFF  ' TO MF431O-CHOIX.
+           MOVE mess-info TO MF431o-info.
+           CALL 'CBLTDLI' using isrt-fct altpcb modname.
+           IF altpcb-rc NOT = SPACES THEN
+              STRING 'erreur isrt sto mess '  altpcb-rc
+                     '-' modname '-'
+                  DELIMITED BY SIZE INTO mess-info
+              DISPLAY 'im43list:' mess-info
+           END-IF.
+           DISPLAY 'im43list-isrt sto mess' out-MF431o.
+

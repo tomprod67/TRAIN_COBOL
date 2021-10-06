@@ -1,0 +1,58 @@
+       01  ERREURI.
+           02  FILLER PIC X(12).
+           02  ETRANL    COMP  PIC  S9(4).
+           02  ETRANF    PICTURE X.
+           02  FILLER REDEFINES ETRANF.
+             03 ETRANA    PICTURE X.
+           02  ETRANI  PIC X(4).
+           02  EPGML    COMP  PIC  S9(4).
+           02  EPGMF    PICTURE X.
+           02  FILLER REDEFINES EPGMF.
+             03 EPGMA    PICTURE X.
+           02  EPGMI  PIC X(8).
+           02  ERSNL    COMP  PIC  S9(4).
+           02  ERSNF    PICTURE X.
+           02  FILLER REDEFINES ERSNF.
+             03 ERSNA    PICTURE X.
+           02  ERSNI  PIC X(60).
+           02  ECMDEL    COMP  PIC  S9(4).
+           02  ECMDEF    PICTURE X.
+           02  FILLER REDEFINES ECMDEF.
+             03 ECMDEA    PICTURE X.
+           02  ECMDEI  PIC X(20).
+           02  ERESPL    COMP  PIC  S9(4).
+           02  ERESPF    PICTURE X.
+           02  FILLER REDEFINES ERESPF.
+             03 ERESPA    PICTURE X.
+           02  ERESPI  PIC X(12).
+           02  EFILEL    COMP  PIC  S9(4).
+           02  EFILEF    PICTURE X.
+           02  FILLER REDEFINES EFILEF.
+             03 EFILEA    PICTURE X.
+           02  EFILEI  PIC X(22).
+       01  ERREURO REDEFINES ERREURI.
+           02  FILLER PIC X(12).
+           02  FILLER PICTURE X(3).
+           02  ETRANO  PIC X(4).
+           02  FILLER PICTURE X(3).
+           02  EPGMO  PIC X(8).
+           02  FILLER PICTURE X(3).
+           02  ERSNO  PIC X(60).
+           02  FILLER PICTURE X(3).
+           02  ECMDEO  PIC X(20).
+           02  FILLER PICTURE X(3).
+           02  ERESPO  PIC X(12).
+           02  FILLER PICTURE X(3).
+           02  EFILEO  PIC X(22).
+       01  MESSAGEI REDEFINES ERREURI.
+           02  FILLER PIC X(12).
+           02  EMSGL    COMP  PIC  S9(4).
+           02  EMSGF    PICTURE X.
+           02  FILLER REDEFINES EMSGF.
+             03 EMSGA    PICTURE X.
+           02  EMSGI  PIC X(79).
+       01  MESSAGEO REDEFINES MESSAGEI.
+           02  FILLER PIC X(12).
+           02  FILLER PICTURE X(3).
+           02  EMSGO  PIC X(79).
+

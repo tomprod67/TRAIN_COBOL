@@ -1,0 +1,185 @@
+//TRAIN432  JOB NOTIFY=&SYSUID                                          00000001
+//*                                                                     00000002
+//********************************************************************* 00218400
+//*                CREATION D UNE TABLE                                 00219200
+//*               AVEC SAUVEGARDE SYSCOPY                               00219200
+//********************************************************************* 00218400
+//*                                                                     00230000
+//JOBLIB  DD  DSN=DB2B10.SDSNLOAD,DISP=SHR                              00220000
+//*                                                                     00230000
+//********************************************************************* 00240000
+//********************************************************************* 00534000
+//*                                                                     00537000
+//*        STEP  1: CREATE TABLESPACE                                   00540000
+//*                                                                     00545000
+//PH01S01 EXEC PGM=IKJEFT01,DYNAMNBR=20,COND=(4,LT)                     00550000
+//SYSTSPRT DD SYSOUT=*                                                  00560000
+//SYSTSIN  DD *                                                         00570000
+  DSN SYSTEM(DB2T)                                                      00580000
+  RUN  PROGRAM(DSNTIAD) PLAN(DSNTIA11) -                                00590000
+       LIB('SYS2.DB2B10.RUNLIB')                                        00600000
+//SYSPRINT DD SYSOUT=*                                                  00610000
+//SYSUDUMP DD SYSOUT=*                                                  00620000
+//SYSIN    DD *                                                         00630000
+                                                                        00790000
+  CREATE TABLESPACE BI04TT43                                            00800000
+    IN BI04BASE                                                         00810000
+    USING STOGROUP BI04STGR                                             00820000
+              PRIQTY 20                                                 00830000
+              SECQTY 20                                                 00840000
+              ERASE NO                                                  00850000
+    LOCKSIZE PAGE LOCKMAX SYSTEM                                        00860000
+    BUFFERPOOL BP0                                                      00870000
+    CLOSE NO                                                            00880000
+    CCSID EBCDIC;                                                       00890000
+                                                                        00910000
+  COMMIT ;                                                              00920000
+                                                                        01826000
+//*                                                                     01830000
+//*        STEP  2: CREATE TABLE                                        01840000
+//*                                                                     01845000
+//PH01S02 EXEC PGM=IKJEFT01,DYNAMNBR=20,COND=(4,LT)                     01850000
+//SYSTSPRT DD  SYSOUT=*                                                 01860000
+//SYSTSIN  DD  *                                                        01870000
+  DSN SYSTEM(DB2T)                                                      01880000
+  RUN  PROGRAM(DSNTIAD) PLAN(DSNTIA11) -                                01890000
+       LIB('SYS2.DB2B10.RUNLIB')                                        01900000
+//SYSPRINT DD  SYSOUT=*                                                 01910000
+//SYSUDUMP DD  SYSOUT=*                                                 01920000
+//SYSIN    DD  *                                                        01930000
+  CREATE TABLE TRAIN43.CLIENT                                           01950000
+                (NUMB     CHAR(6)        NOT NULL,                      01960000
+                 STAT     CHAR(1),                                      01960000
+                 NAME     CHAR(20),                                     01970000
+                 ADDRX    CHAR(20),                                     01980000
+                 PHONE    CHAR(8),                                      01990000
+                 DATEX    CHAR(8),                                      02000000
+                 AMOUNT   CHAR(8),                                      02000000
+                 COMMENT  CHAR(9),                                      02000000
+                 PRIMARY KEY(NUMB))                                     02010000
+         IN BI04BASE.BI04TT43                                           02020000
+         CCSID EBCDIC;                                                  02030000
+                                                                        02040000
+  CREATE UNIQUE INDEX TRAIN43.XCLIENT                                   02050000
+                   ON TRAIN43.CLIENT                                    02060000
+                       (NUMB     ASC)                                   02070000
+                   USING STOGROUP BI04STGR                              02080000
+                             PRIQTY 12                                  02090000
+                             ERASE NO                                   02100000
+                   BUFFERPOOL BP0                                       02110000
+                   CLOSE NO;                                            02120000
+//*                                                                     08560000
+//*        STEP  3: GRANT AUTHORITY                                     08570000
+//*                                                                     08575000
+//PH01S03 EXEC PGM=IKJEFT01,DYNAMNBR=20,COND=(4,LT)                     08580000
+//SYSTSPRT DD  SYSOUT=*                                                 08590000
+//SYSTSIN  DD  *                                                        08600000
+  DSN SYSTEM(DB2T)                                                      08610000
+  RUN  PROGRAM(DSNTIAD) PLAN(DSNTIA11) -                                08620000
+       LIB('SYS2.DB2B10.RUNLIB')                                        08630000
+//SYSPRINT DD  SYSOUT=*                                                 08640000
+//SYSUDUMP DD  SYSOUT=*                                                 08650000
+//SYSIN    DD  *                                                        08660000
+  GRANT USE OF TABLESPACE BI04BASE.BI04TT43 TO PUBLIC;                  09010000
+  SET CURRENT SQLID = 'TRAIN43';
+  GRANT DELETE, INSERT, SELECT, UPDATE ON TABLE TRAIN43.CLIENT          09070000
+        TO PUBLIC;                                                      09080000
+//*                                                                     10100000
+//*        STEP 04: CREATE SAMPLE UTILITY LIST                          10110000
+//*                                                                     10111000
+//PH01S04 EXEC PGM=IEBGENER,COND=(4,LT)                                 10112000
+//SYSIN    DD  DUMMY                                                    10113000
+//SYSPRINT DD  SYSOUT=*                                                 10114000
+//SYSUT1   DD  *                                                        10115000
+                                                                        10116000
+  LISTDEF BI04LDEF                                                      10117000
+          INCLUDE TABLESPACE BI04BASE.BI04TT43                          10118000
+                                                                        10121000
+//SYSUT2   DD  DSN=TRAIN43.BI04.DB2T.LISTDEF,                           10122000
+//             DISP=(,CATLG,DELETE),                                    10123000
+//             UNIT=3390,SPACE=(TRK,1),                                 10124000
+//             DCB=(RECFM=FB,LRECL=80)                                  10125000
+//*                                                                     10470000
+//*        STEP 05: LOAD DATA INTO SAMPLE APPLICATION TABLES            10475000
+//*                                                                     10480000
+//PH01S05 EXEC DSNUPROC,PARM='DB2T,DSNTEX',COND=(4,LT)                  10485000
+//SYSUT1   DD  UNIT=SYSDA,SPACE=(4000,(20,20),,,ROUND)                  10490000
+//SORTLIB  DD  DSN=SYS1.SORTLIB,DISP=SHR                                10500000
+//SORTOUT  DD  UNIT=SYSDA,SPACE=(4000,(20,20),,,ROUND)                  10510000
+//DSNTRACE DD  SYSOUT=*                                                 10560000
+//SYSRECCL DD  DSN=FORM.INIT.BI04.VSAM.SAVE,                            10590000
+//             DISP=SHR                                                 10600000
+//SYSERR   DD  UNIT=SYSDA,SPACE=(4000,(20,20),,,ROUND)                  10690000
+//SYSDISC  DD  UNIT=SYSDA,SPACE=(4000,(20,20),,,ROUND)                  10700000
+//SYSMAP   DD  UNIT=SYSDA,SPACE=(4000,(20,20),,,ROUND)                  10710000
+//SYSIN    DD  *                                                        10720000
+                                                                        10730000
+  LOAD DATA INDDN(SYSRECCL)                                             10740000
+       INTO TABLE TRAIN43.CLIENT                                        10748000
+            (STAT     POSITION(01) CHAR(1),                             10757000
+             NUMB     POSITION(02) CHAR(6),                             10766000
+             NAME     POSITION(08) CHAR(20),                            10775000
+             ADDRX    POSITION(28) CHAR(20),                            10775000
+             PHONE    POSITION(48) CHAR(8),                             10784000
+             DATEX    POSITION(56) CHAR(8),                             10784000
+             AMOUNT   POSITION(64) CHAR(8),                             10784000
+             COMMENT  POSITION(72) CHAR(9))                             10793000
+       ENFORCE NO                                                       10802000
+       SORTDEVT SYSDA SORTNUM 4                                         10811000
+                                                                        10820000
+//*                                                                     11660000
+//*        STEP 06: ESTABLISH A QUIESCE POINT                           11664000
+//*                                                                     11676000
+//PH01S06 EXEC DSNUPROC,PARM='DB2T,DSNTEX',COND=(4,LT)                  11680000
+//SYSLISTD DD  DISP=SHR,DSN=TRAIN43.BI04.DB2T.LISTDEF                   11685000
+//SYSUT1   DD  UNIT=SYSDA,SPACE=(4000,(20,20),,,ROUND)                  11690000
+//SYSIN    DD  *                                                        11700000
+                                                                        11710000
+  QUIESCE LIST BI04LDEF                                                 11720000
+                                                                        11750000
+//*                                                                     11760000
+//*        STEP 07: TAKE IMAGE COPY OF SAMPLE TABLES                    11762000
+//*                                                                     11765000
+//PH01S07 EXEC DSNUPROC,PARM='DB2T,DSNTEX',COND=(4,LT)                  11768000
+//SYSLISTD DD  DISP=SHR,DSN=TRAIN43.BI04.DB2T.LISTDEF                   11771000
+//DSNTRACE DD  SYSOUT=*                                                 11780000
+//SYSIN    DD  *                                                        11910000
+                                                                        11920000
+  TEMPLATE DSN8TPLT                                                     11930000
+           DSN(DB2T.DB2B10.SYSCOPY.&DB..&TS.)                           11931000
+           DISP (NEW,CATLG,DELETE)                                      11932000
+           UNIT 3390 VOLUMES(DB2SYS)                                    11933000
+           PCTPRIME 100 MAXPRIME 5 NBRSECND 10                          11934000
+      COPY LIST BI04LDEF                                                11936000
+           COPYDDN(DSN8TPLT)                                            11938000
+                                                                        11940000
+//*                                                                     11950000
+//*        STEP 08: ESTABLISH A QUIESCE POINT USING ONLY IMAGE COPIES   11960000
+//*                                                                     11970000
+//PH01S08 EXEC DSNUPROC,PARM='DB2T,DSNTEX',COND=(4,LT)                  11990000
+//SYSLISTD DD  DISP=SHR,DSN=TRAIN43.BI04.DB2T.LISTDEF                   12010000
+//SYSUT1   DD  UNIT=SYSDA,SPACE=(4000,(20,20),,,ROUND)                  12030000
+//SYSIN    DD  *                                                        12040000
+                                                                        12050000
+  QUIESCE LIST BI04LDEF                                                 12060000
+                                                                        12090000
+//*                                                                     12100000
+//*        STEP 09: REORGANIZE TABLESPACES, PRODUCE STATISTICS          12110000
+//*                                                                     12115000
+//PH01S09 EXEC DSNUPROC,PARM='DB2T,DSNTEX',COND=(4,LT)                  12120000
+//SYSLISTD DD  DISP=SHR,DSN=TRAIN43.BI04.DB2T.LISTDEF                   12125000
+//SORTLIB  DD  DSN=SYS1.SORTLIB,DISP=SHR                                12130000
+//SORTOUT  DD  UNIT=SYSDA,SPACE=(4000,(20,20),,,ROUND)                  12140000
+//DSNTRACE DD  SYSOUT=*                                                 12190000
+//SYSUT1   DD  UNIT=SYSDA,SPACE=(4000,(50,50),,,ROUND)                  12200000
+//SYSREC   DD  UNIT=SYSDA,SPACE=(4000,(200,200),,,ROUND)                12210000
+//SYSIN    DD  *                                                        12220000
+                                                                        12230000
+ REORG TABLESPACE BI04BASE.BI04TT43                                     12240000
+        SORTDEVT(SYSDA) SORTNUM 4                                       12245000
+                                                                        12250000
+ RUNSTATS TABLESPACE LIST BI04LDEF                                      12260000
+         INDEX(ALL)                                                     12270000
+                                                                        12280000
+//*                                                                     14268000
+

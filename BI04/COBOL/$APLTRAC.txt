@@ -1,0 +1,25 @@
+       appel-CI43trac.                                                  00070004
+      *       COPY COMMAREA cy43trac                                    00080005
+           MOVE SPACES      TO comm-CI43trac.                           00090004
+           MOVE 'CI43TRAC'  TO td43-pgm.                                00091004
+      *       date EIB                                                  00092000
+           MOVE EIBDATE     TO td43-day.                                00100006
+      *       heure EIB                                                 00101000
+           MOVE EIBTIME     TO td43-time.                               00110006
+      *       code transaction EIB                                      00111000
+           MOVE EIBTRNID    TO td43-trnid.                              00120006
+      *       identifiant terminal EIB                                  00121000
+           MOVE EIBAID      TO td43-terml.                              00130006
+      *       utilisation appel sous-programme CICS                     00140000
+      *          definition WSS                                         00140105
+      *             01  comm-ci43trac.                                  00140204
+      *                 COPY cy43TRAC.                                  00140304
+      *       PROGRAM CI43TRAC                                          00141004
+      *       AREA comm-ci43trac                                        00142004
+      *       LENGTH utilisation instruction COBOL LENGTH OF            00143000
+           EXEC CICS                                                    00144000
+                LINK PROGRAM ('CI43TRAC')                               00145006
+                COMMAREA(comm-ci43trac)                                 00145106
+                LENGTH(Length of comm-ci43trac)                         00145206
+           END-EXEC.                                                    00146000
+

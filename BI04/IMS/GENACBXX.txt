@@ -1,0 +1,16 @@
+//TRAIN431   JOB SSY,'ACBGEN   ',                                       00010005
+//         MSGCLASS=X,NOTIFY=&SYSUID                                    00020000
+//*                                                                     00030000
+//MESPROC    JCLLIB ORDER=(FORM.BI04.PROCLIB,                           00040000
+//           FORM.BI04.PROCLIB.CICS,                                    00041000
+//           FORM.BI04.PROCLIB.IMS)                                     00042000
+//*                                                                     00043000
+//*                                                                     00044000
+//*        STEP     RUN THE ACBGEN                                      00045000
+//*                                                                     00046000
+//STEP     EXEC ACBGEN                                                  00047000
+//G.SYSIN DD *                                                          00048000
+ BUILD PSB=IM43BATC                                                     00049005
+ BUILD PSB=IM43BROW                                                     00049105
+ BUILD PSB=IM43CMNU                                                     00049205
+

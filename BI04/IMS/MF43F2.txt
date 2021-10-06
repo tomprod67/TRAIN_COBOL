@@ -1,0 +1,98 @@
+**********************************************************************
+*                                                                    *
+*   MODULE NAME = MF432F                                             *
+*                                                                    *
+*   DESCRIPTIVE NAME = IMS MFS FORMAT FOR SAMPLE PROGRAM, DETAIL     *
+*                                                                    *
+*      MACROS         =                                              *
+*         DEV                 - IMS MFS DEVICE DESCRIPTION           *
+*         DFLD                - IMS MFS FIELD  DESCRIPTION           *
+*         DIV                 - IMS MFS DIVISION DESCRIPTION         *
+*         DO                  - IMS MFS GROUPING                     *
+*         DPAGE               - IMS MFS PAGE   DESCRIPTION           *
+*         ENDDO               - IMS MFS END OF GROUPING              *
+*         FMT                 - IMS MFS FORMAT BEGINNING             *
+*         FMTEND              - IMS MFS FORMAT ENDING                *
+*         MFLD                - IMS MFS MESSAGE FIELD                *
+*         MSG                 - IMS MFS MESSAGE DESCRIPTION          *
+*         MSGEND              - IMS MFS MESSAGE ENDING               *
+*         SEG                 - IMS MFS MESSAGE SEGMENT              *
+*                                                                    *
+*   PSEUDOCODE      =                                                *
+*                                                                    *
+*      THIS MODULE CONTAINS NO EXECUTABLE CODE.                      *
+*                                                                    *
+**********************************************************************
+         EJECT
+*
+         PRINT NOGEN
+MF432F   FMT
+         DEV   TYPE=(3270,2),FEAT=IGNORE,SYSMSG=MESSYS,                *
+               PFK=(KEY,1='01',2='02',3='03',8='08',10='10',13='01',   *
+               14='02',15='03',20='08',22='10')
+         DIV   TYPE=INOUT
+         DPAGE CURSOR=((11,1))
+TITLE    DFLD  POS=(01,15),LTH=12
+         DFLD  'NUMERO  : ',                                           *
+               POS=(03,01)
+NUMB     DFLD  POS=(03,13),LTH=6
+         DFLD  'NOM      :',                                           *
+               POS=(04,01)
+NAME     DFLD  POS=(04,13),LTH=20
+         DFLD  'ADDRESSE :',                                           *
+               POS=(05,01)
+ADDR     DFLD  POS=(05,13),LTH=20
+         DFLD  'TELEPHONE :',                                          *
+               POS=(06,01)
+PHONE    DFLD  POS=(06,13),LTH=8
+         DFLD  'DATE      :',                                          *
+               POS=(07,01)
+DATE     DFLD  POS=(07,13),LTH=8
+         DFLD  'MONTANT  :',                                           *
+               POS=(08,01)
+AMOUNT   DFLD  POS=(08,13),LTH=8
+         DFLD  'COMMENT. :',                                           *
+               POS=(09,01)
+COMENT   DFLD  POS=(09,13),LTH=9
+INFO1    DFLD  POS=(11,13),LTH=39
+INFO2    DFLD  POS=(12,13),LTH=39
+INFO     DFLD  POS=(23,01),LTH=79
+MESSYS   DFLD  POS=(24,01),LTH=79
+         FMTEND
+***********************************************************************
+*     COBOL/SAMPLE APPLICATION OUTPUT DESCRIPTION:  MF432FO           *
+***********************************************************************
+*
+MF432FO MSG    TYPE=OUTPUT,SOR=(MF432F,IGNORE),NXT=MF432FI,FILL=C' '
+         SEG
+         MFLD  TITLE,LTH=12                            TITRE
+         MFLD  NUMB,LTH=6                              NUMBER
+         MFLD  NAME,LTH=20                             NAME
+         MFLD  ADDR,LTH=20                             ADDR
+         MFLD  PHONE,LTH=8                             PHONE
+         MFLD  DATE,LTH=8                              DATE
+         MFLD  AMOUNT,LTH=8                            AMOUNT
+         MFLD  COMENT,LTH=9                            COMMENT
+         MFLD  INFO1,LTH=39                            INFO1
+         MFLD  INFO2,LTH=39                            INFO2
+         MSGEND
+***********************************************************************
+*     COBOL/SAMPLE APPLICATION INPUT DESCRIPTION:  MF432FI            *
+***********************************************************************
+*
+MF432FI MSG    TYPE=INPUT,SOR=MF432F
+         SEG
+         MFLD  TITLE,LTH=12                            TITRE
+         MFLD  NUMB,LTH=6                              NUMBER
+         MFLD  NAME,LTH=20                             NAME
+         MFLD  ADDR,LTH=20                             ADDR
+         MFLD  PHONE,LTH=8                             PHONE
+         MFLD  DATE,LTH=8                              DATE
+         MFLD  AMOUNT,LTH=8                            AMOUNT
+         MFLD  COMENT,LTH=9                            COMMENT
+         MFLD  INFO1,LTH=39                            INFO1
+         MFLD  INFO2,LTH=39                            INFO2
+         MFLD  KEY,LTH=02                              PFK
+         MSGEND
+         END
+

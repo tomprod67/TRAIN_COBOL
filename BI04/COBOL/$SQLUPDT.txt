@@ -1,0 +1,20 @@
+      *                                **PERFORM UPDATE
+           EXEC SQL UPDATE FBMVDEPT
+              SET DEPTNAME=:PDEPT-DEPTNAME,
+                  MGRNO=:PDEPT-MGRNO:NULLIND1,
+                  ADMRDEPT=:PDEPT-ADMRDEPT
+              WHERE DEPTNO=:PDEPT-DEPTNO
+           END-EXEC.
+
+      *                                **DEPARTMENT SUCCESSFULLY
+      *                                **UPDATED
+           IF SQLCODE = 0 THEN
+              MOVE '014I' TO MSGCODE
+              GO TO MCE041.
+
+      *                                **DEPARTMENT DOES NOT EXIST,
+      *                                **UPDATE NOT DONE
+           IF SQLCODE = +100 THEN
+              MOVE '017E' TO MSGCODE
+              GO TO MCEMSG.
+

@@ -1,0 +1,3 @@
+http://publib.boulder.ibm.com/infocenter/cicsts/v3r1/index.jsp?topic=%2F
+com.ibm.cics.ts31.doc%2Fdfhp4%2Ftopics%2Fdfhp4_commandsummary.htm
+

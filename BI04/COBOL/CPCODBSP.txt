@@ -1,0 +1,17 @@
+//TRAIN43C    JOB SSY,'COMPI COB',                                      00010001
+//         MSGCLASS=X,NOTIFY=&SYSUID                                    00020000
+//*                                                                     00030000
+//*       COMPILATION PROGRAMME AVEC ENTRY                              00040000
+//*                                                                     00052000
+//MESPROC    JCLLIB ORDER=(FORM.BI04.PROCLIB,                           00053000
+//           FORM.BI04.PROCLIB.CICS,                                    00054000
+//           FORM.BI04.PROCLIB.IMS)                                     00055000
+//*                                                                     00056000
+//COMPIL       EXEC PCODB,MEMBER=TR43SPSP                               00057001
+//LINK.SYSLIN  DD                                                       00058000
+//          DD                                                          00059000
+//SYSIN     DD *                                                        00060000
+  ALIAS TR43SPSS,TR43SPSI,TR43SPSM,TR43SPSD                             00070001
+  NAME TR43SPSP(R)                                                      00080001
+//*                                                                     00090000
+

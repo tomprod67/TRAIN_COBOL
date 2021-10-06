@@ -1,0 +1,38 @@
+      CBL CICS('SP,COBOL2,NOCBLCARD')                                   00001012
+      ***************************************************************** 00020000
+      *                                                               * 00030000
+      * MODULE NAME = CI43TRAC                                        * 00040017
+      *                                                               * 00050000
+      * DESCRIPTIVE NAME = Trace TD                                   * 00060000
+      *                                                               * 00070000
+      *                                                               * 00080000
+      *---------------------------------------------------------------* 00090000
+      *                                                               * 00100000
+      * DESCRIPTION :                                                 * 00110000
+      *                                                               * 00120000
+      *      Ce programme ecrit la dfhcommarea sur une TD             * 00130006
+      *                                                               * 00140000
+      *---------------------------------------------------------------* 00150000
+      *                                                               * 00160000
+      * CHANGE :                                                      * 00170000
+      *                                                               * 00180000
+      ***************************************************************** 00190000
+       IDENTIFICATION DIVISION.                                         00200000
+       PROGRAM-ID. CI43TRAC.                                            00210017
+       ENVIRONMENT DIVISION.                                            00220000
+       DATA DIVISION.                                                   00230000
+       WORKING-STORAGE SECTION.                                         00240000
+       01  TRAC-LNG            PIC S9(4) COMP VALUE +128.               00250006
+       LINKAGE SECTION.                                                 06340000
+       01  DFHCOMMAREA.                                                 06350000
+       COPY cy43trac.                                                   06360017
+       PROCEDURE DIVISION.                                              06370000
+      *??  inclure ordre ecriture sur la TD TD43                        06520017
+      *??             queue TD43                                        06530017
+      *??           area  dfhcommarea                                   06550010
+           EXEC CICS WRITEQ TD QUEUE('TD43')                            06560018
+               FROM(dfhcommarea)                                        06570018
+               LENGTH(length of dfhcommarea)                            06580018
+           END-EXEC.                                                    06590018
+           GOBACK.                                                      06620000
+

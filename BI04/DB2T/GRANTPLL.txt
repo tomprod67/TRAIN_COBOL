@@ -1,0 +1,2 @@
+ GRANT BIND, EXECUTE ON PLAN TR43BDB2 TO PUBLIC;                        01380017
+

@@ -1,0 +1,13 @@
+//TRAIN43M    JOB SSY,'MFSUTL   ',                                      00010010
+//         MSGCLASS=X,NOTIFY=&SYSUID                                    00020001
+//*                                                                     00181000
+//MESPROC    JCLLIB ORDER=(FORM.BI04.PROCLIB,                           00182006
+//           FORM.BI04.PROCLIB.CICS,                                    00183006
+//           FORM.BI04.PROCLIB.IMS)                                     00184006
+//*                                                                     00620000
+//*        STEP   : CREATE THE MFS MAPS                                 00630000
+//*                                                                     00631000
+//STEP     EXEC MFSUTL                                                  00632000
+//SYSIN DD DSN=&SYSUID..BI04.IMS(MF43F3),                               00650011
+//             DISP=SHR                                                 00660000
+

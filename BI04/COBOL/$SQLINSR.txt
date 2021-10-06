@@ -1,0 +1,23 @@
+      *            INSERT AVEC SELECTION DES COLONNES MISES à JOUR
+           EXEC SQL INSERT INTO FBMVDEPT
+                (DEPTNO,DEPTNAME,MGRNO,ADMRDEPT)
+                VALUES(:PDEPT-DEPTNO,:PDEPT-DEPTNAME,
+                :PDEPT-MGRNO:NULLIND1,:PDEPT-ADMRDEPT)
+           END-EXEC.
+      *                                OU
+      *            INSERT GLOBALE DE TOUTES LES COLONNES DE LA TABLE
+      *            LES VALEURS :FBMVDEPT-ALL DOIVENT RESPECTER
+      *            L'ORDRE DES COLONNES DEFINIES DANS CREATE TABLE
+      *    EXEC SQL INSERT INTO FBMVDEPT
+      *         VALUES(:FBMVDEPT-ALL)
+      *    END-EXEC.
+      *                                **PERFORM INSERT
+
+
+      *                                **DEPARTMENT SUCCESSFULLY ADDED
+           IF SQLCODE = 0 THEN
+              MOVE ' ' TO PREV
+              MOVE '012I' TO MSGCODE
+              GO TO MCE041.
+
+

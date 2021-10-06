@@ -1,0 +1,105 @@
+**********************************************************************
+*                                                                    *
+*   MODULE NAME = MF433F                                             *
+*                                                                    *
+*   DESCRIPTIVE NAME = IMS MFS FORMAT FOR SAMPLE PROGRAM, DETAIL     *
+*                                                                    *
+*      MACROS         =                                              *
+*         DEV                 - IMS MFS DEVICE DESCRIPTION           *
+*         DFLD                - IMS MFS FIELD  DESCRIPTION           *
+*         DIV                 - IMS MFS DIVISION DESCRIPTION         *
+*         DO                  - IMS MFS GROUPING                     *
+*         DPAGE               - IMS MFS PAGE   DESCRIPTION           *
+*         ENDDO               - IMS MFS END OF GROUPING              *
+*         FMT                 - IMS MFS FORMAT BEGINNING             *
+*         FMTEND              - IMS MFS FORMAT ENDING                *
+*         MFLD                - IMS MFS MESSAGE FIELD                *
+*         MSG                 - IMS MFS MESSAGE DESCRIPTION          *
+*         MSGEND              - IMS MFS MESSAGE ENDING               *
+*         SEG                 - IMS MFS MESSAGE SEGMENT              *
+*                                                                    *
+*   PSEUDOCODE      =                                                *
+*                                                                    *
+*      THIS MODULE CONTAINS NO EXECUTABLE CODE.                      *
+*                                                                    *
+**********************************************************************
+         EJECT
+*
+         PRINT NOGEN
+MF433F   FMT
+         DEV   TYPE=(3270,2),FEAT=IGNORE,SYSMSG=MESSYS,                *
+               PFK=(KEY,1='01',2='02',3='03',7='07',8='08',10='10',    *
+               13='01',14='02',15='03',20='08',22='10')
+         DIV   TYPE=INOUT
+         DPAGE CURSOR=((11,1))
+TITLE    DFLD  POS=(01,15),LTH=12
+         DFLD  'NUMBER',                                               *
+               POS=(03,01)
+         DFLD  'NAME',                                                 *
+               POS=(03,17)
+         DFLD  'AMOUNT',                                               *
+               POS=(03,32)
+NUMB1    DFLD  POS=(04,1),LTH=6
+NAME1    DFLD  POS=(04,9),LTH=20
+AMOUNT1  DFLD  POS=(04,30),LTH=8
+NUMB2    DFLD  POS=(05,1),LTH=6
+NAME2    DFLD  POS=(05,9),LTH=20
+AMOUNT2  DFLD  POS=(05,30),LTH=8
+NUMB3    DFLD  POS=(06,1),LTH=6
+NAME3    DFLD  POS=(06,9),LTH=20
+AMOUNT3  DFLD  POS=(06,30),LTH=8
+NUMB4    DFLD  POS=(07,1),LTH=6
+NAME4    DFLD  POS=(07,9),LTH=20
+AMOUNT4  DFLD  POS=(07,30),LTH=8
+         DFLD  'PRESS CLEAR TO END BROWSE OPERATION',                  *
+               POS=(11,12)
+         DFLD  'PRESS PF7 TO PAGE BACKWARD',                           *
+               POS=(12,12)
+         DFLD  'PRESS PF8 TO PAGE FORWARD',                            *
+               POS=(13,12)
+INFO     DFLD  POS=(23,01),LTH=79
+MESSYS   DFLD  POS=(24,01),LTH=79
+         FMTEND
+***********************************************************************
+*     COBOL/SAMPLE APPLICATION OUTPUT DESCRIPTION:  MF433FO           *
+***********************************************************************
+*
+MF433FO MSG    TYPE=OUTPUT,SOR=(MF433F,IGNORE),NXT=MF433FI,FILL=C' '
+         SEG
+         MFLD  TITLE,LTH=12                            TITRE
+         MFLD  NUMB1,LTH=6                              NUMBER
+         MFLD  NAME1,LTH=20                             NAME
+         MFLD  AMOUNT1,LTH=8                            AMOUNT
+         MFLD  NUMB2,LTH=6                              NUMBER
+         MFLD  NAME2,LTH=20                             NAME
+         MFLD  AMOUNT2,LTH=8                            AMOUNT
+         MFLD  NUMB3,LTH=6                              NUMBER
+         MFLD  NAME3,LTH=20                             NAME
+         MFLD  AMOUNT3,LTH=8                            AMOUNT
+         MFLD  NUMB4,LTH=6                              NUMBER
+         MFLD  NAME4,LTH=20                             NAME
+         MFLD  AMOUNT4,LTH=8                            AMOUNT
+         MSGEND
+***********************************************************************
+*     COBOL/SAMPLE APPLICATION INPUT DESCRIPTION:  MF433FI            *
+*******************é***************************************************
+*
+MF433FI MSG    TYPE=INPUT,SOR=MF433F
+         SEG
+         MFLD  TITLE,LTH=12                            TITRE
+         MFLD  NUMB1,LTH=6                              NUMBER
+         MFLD  NAME1,LTH=20                             NAME
+         MFLD  AMOUNT1,LTH=8,JUST=R,FILL=C'0'           AMOUNT
+         MFLD  NUMB2,LTH=6                              NUMBER
+         MFLD  NAME2,LTH=20                             NAME
+         MFLD  AMOUNT2,LTH=8,JUST=R,FILL=C'0'           AMOUNT
+         MFLD  NUMB3,LTH=6                              NUMBER
+         MFLD  NAME3,LTH=20                             NAME
+         MFLD  AMOUNT3,LTH=8,JUST=R,FILL=C'0'           AMOUNT
+         MFLD  NUMB4,LTH=6                              NUMBER
+         MFLD  NAME4,LTH=20                             NAME
+         MFLD  AMOUNT4,LTH=8,JUST=R,FILL=C'0'           AMOUNT
+         MFLD  KEY,LTH=02                              PFK
+         MSGEND
+         END
+

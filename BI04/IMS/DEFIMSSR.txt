@@ -1,0 +1,41 @@
+//TRAIN43D  JOB NOTIFY=&SYSUID                                          JOB07988
+//*                                                                     00000002
+//********************************************************************* 00218400
+//*                                                                     00219200
+//JOBLIB  DD  DSN=IMSV14.SDFSRESL,DISP=SHR                              00220000
+//*                                                                     00230000
+//********************************************************************* 00240000
+//*                                                                     00545000
+//PH01S01 EXEC PGM=CSLUSPOC,                                            00550000
+//        PARM=('IMSPLEX=PLEX1,ROUTE=(IVP1),WAIT=5,F=BYCOL')
+//SYSPRINT DD SYSOUT=*                                                  00560000
+//SYSIN    DD *                                                         00570000
+ DELETE TRAN NAME(Z043)
+ DELETE PGM NAME(IM43CMNU)
+ CREATE PGM NAME(IM43CMNU) LIKE (RSC(IMXXCMNU))
+ CREATE TRAN NAME(Z043) LIKE (RSC(Z0XX)) SET (CLASS=43,PGM=IM43CMNU)
+ DELETE TRAN NAME(Z143)
+ DELETE PGM NAME(IM43LIST)
+ CREATE PGM NAME(IM43LIST) LIKE (RSC(IMXXLIST))
+ CREATE TRAN NAME(Z143) LIKE (RSC(Z1XX)) SET (CLASS=43,PGM=IM43LIST)
+ DELETE TRAN NAME(Z243)
+ DELETE PGM NAME(IM43BRVS)
+ DELETE PGM NAME(IM43BROW)
+ CREATE PGM NAME(IM43BROW) LIKE (RSC(IMXXBROW))
+ CREATE TRAN NAME(Z243) LIKE (RSC(Z2XX)) SET (CLASS=43,PGM=IM43BROW)
+ DELETE TRAN NAME(Z343)
+ DELETE PGM NAME(IM43ADD)
+ CREATE PGM NAME(IM43ADD) LIKE (RSC(IMXXADD))
+ CREATE TRAN NAME(Z343) LIKE (RSC(Z3XX)) SET (CLASS=43,PGM=IM43ADD)
+ DELETE TRAN NAME(Z443)
+ DELETE PGM NAME(IM43MODF)
+ CREATE PGM NAME(IM43MODF) LIKE (RSC(IMXXMODF))
+ CREATE TRAN NAME(Z443) LIKE (RSC(Z4XX)) SET (CLASS=43,PGM=IM43MODF)
+ DELETE TRAN NAME(Z543)
+ DELETE PGM NAME(IM43DLET)
+ CREATE PGM NAME(IM43DLET) LIKE (RSC(IMXXDLET))
+ CREATE TRAN NAME(Z543) LIKE (RSC(Z5XX)) SET (CLASS=43,PGM=IM43DLET)
+ DELETE PGM NAME(IM43BATC)
+ CREATE PGM NAME(IM43BATC) LIKE (RSC(IMXXBATC))
+//*
+

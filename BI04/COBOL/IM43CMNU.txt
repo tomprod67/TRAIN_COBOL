@@ -1,0 +1,676 @@
+       IDENTIFICATION DIVISION.                                         00010000
+      *------------------------                                         00011000
+       PROGRAM-ID. IM43CMNU.                                            00012021
+                                                                        00013000
+      ******* im43cmnu - IMS SUBSYSTEM INTERFACE MODULE - COBOL ********00014021
+      *                                                               * 00015000
+      *   MODULE NAME = IM43CMNU                                      * 00016021
+      *                                                               * 00017000
+      *   DESCRIPTIVE NAME = DB2 SAMPLE APPLICATION                   * 00018000
+      *                      SUBSYSTEM INTERFACE MODULE               * 00019000
+      *                      IMS                                      * 00020000
+      *                      COBOL                                    * 00030000
+      *                      GESTION MENU                             * 00040000
+      *---------------------------------------------------------------* 00050000
+       ENVIRONMENT DIVISION.                                            01060000
+      *------------------------                                         01070000
+       CONFIGURATION SECTION.                                           01071000
+       SOURCE-COMPUTER. IBM-370.                                        01072000
+       OBJECT-COMPUTER. IBM-370.                                        01073000
+       DATA DIVISION.                                                   01090000
+      *------------------------                                         01100000
+       WORKING-STORAGE SECTION.                                         01110000
+      ****************************************************************  01111000
+      *                declaration for ims                           *  01112000
+      ****************************************************************  01113000
+      *                                                                 01114000
+       77  gu-fct               PIC X(4) VALUE  'GU  '.                 01115007
+       77  gn-fct               PIC X(4)  VALUE 'GN  '.                 01115107
+       77  isrt-fct             PIC X(4) VALUE  'ISRT'.                 01116007
+       77  chng-fct             PIC X(4) VALUE  'CHNG'.                 01117007
+       77  roll-fct             PIC X(4) VALUE  'ROLL'.                 01118007
+       77  rc-no-segment        PIC X(2) VALUE 'QD'.                    01118107
+       77  rc-no-message        PIC X(2) VALUE 'QC'.                    01118207
+       77  rc-mess-exist        PIC X(2) VALUE 'CF'.                    01118307
+      *                                                                 01119000
+       77  modname              PIC X(8).                               01119107
+       77  tran-chng            PIC X(8).                               01119207
+       77  tran-menu            PIC X(8) VALUE 'Z043'.                  01119321
+       77  tran-liste           PIC X(8) VALUE 'Z143'.                  01119421
+       77  tran-consultation    PIC X(8) VALUE 'Z243'.                  01119521
+       77  tran-ajout           PIC X(8) VALUE 'Z343'.                  01119621
+       77  tran-modification    PIC X(8) VALUE 'Z443'.                  01119721
+       77  tran-suppression     PIC X(8) VALUE 'Z543'.                  01119921
+      *                                                                 01120000
+       77  w-space-ctr          PIC 9(2) COMP.                          01120107
+       77  w-space-input        PIC X(8) VALUE      SPACES.             01120207
+       77  w-space-output       PIC X(8) VALUE      SPACES.             01120307
+                                                                        01120400
+      * SCRATCH PAD AREA                                                01120500
+                                                                        01120600
+       01  w-spa.                                                       01120700
+           05  w-spa-ll         PIC S9(4) COMP.                         01120807
+           05  w-spa-zz         PIC X(4).                               01120907
+           05  w-spa-tran       PIC X(8).                               01121007
+           05  w-spa-donnees.                                           01121100
+               10 w-spa-choix   PIC X(7).                               01121207
+               10 w-spa-clecli  PIC X(6).                               01121307
+           05  w-spa-stclient   PIC X(73).                              01121416
+      ****************************************************************  01121500
+      *                declaration dialogue                          *  01122000
+      ****************************************************************  01130000
+       01  w-controle       PIC X.                                      01150007
+           88 b-controle-ok   VALUE  '0'.                               01160007
+           88 b-controle-ko  VALUE  '9'.                                01170007
+       01  w-action         PIC X.                                      01180007
+           88 b-action-suite  VALUE  '0'.                               01181007
+           88 b-action-abandon  VALUE  '9'.                             01182007
+       01  w-trt            PIC X.                                      01187009
+           88 b-trt-null      VALUE  '0'.                               01188007
+           88 b-trt-liste     VALUE  '1'.                               01188107
+           88 b-trt-consult   VALUE  '2'.                               01188207
+           88 b-trt-ajout     VALUE  '3'.                               01189007
+           88 b-trt-modification VALUE '4'.                             01189107
+           88 b-trt-suppression VALUE '5'.                              01189207
+           88 b-trt-goback    VALUE  '6'.                               01189307
+           88 b-trt-fin       VALUE  '7'.                               01189407
+           88 b-trt-rejet     VALUE  '8'.                               01189507
+           88 b-trt-erreur    VALUE  '9'.                               01189607
+           88 b-trt-reaff     VALUE  'A'.                               01189720
+           88 b-trt-abandon   VALUE  '6' '8' '9' 'A'.                   01189820
+           88 b-trt-exit      VALUE  '6' '7' '8' '9' 'A'.               01189920
+       01  mess-info       PIC X(80).                                   01190807
+       01  mess-temp       PIC X(40).                                   01190907
+      ****************************************************************  01191000
+      *                declaration table client                      *  01191100
+      ****************************************************************  01191200
+      *                                                                 01191300
+      *------table db2 client                                           01191400
+      *                                                                 01191500
+       01  cle-lec-client PIC X(6).                                     01191609
+       01  e-sqlcode PIC +9(9).                                         01191707
+       01  w-client             PIC X.                                  01191807
+           88 b-client-trouve   VALUE  'y'.                             01191909
+           88 b-client-absent   VALUE  'n'.                             01192009
+           88 b-client-erreur   VALUE  'x'.                             01192109
+           EXEC SQL                                                     01192200
+             INCLUDE cy43dcli                                           01192322
+           END-EXEC.                                                    01193007
+           EXEC SQL                                                     01194000
+             INCLUDE SQLCA                                              01195000
+           END-EXEC.                                                    01196007
+      ****************************************************************  01197000
+      *       declaration for input:  midname MF431i                 *  01200021
+      ****************************************************************  01210000
+      *                                                                 01220000
+       01   in-MF431i.                                                  01230021
+            05 MF431l-prefix.                                           01231021
+               10 MF431i-ll     PIC S9(4) COMP.                         01240021
+               10 MF431i-zz     PIC XX.                                 01250021
+            05 MF431i-donnees.                                          01280021
+               10 filler        PIC XX.                                 01281022
+               10 MF431i-choix  PIC X(7).                               01290021
+               10 MF431i-clecli PIC X(6).                               01356121
+               10 MF431i-pfkin  PIC X(2).                               01356221
+       01   w-donnees  PIC x(15).                                       01357007
+      *                                                                 01360000
+      ****************************************************************  01380000
+      *       declaration for output: modname MF431o                 *  01390021
+      ****************************************************************  01400000
+      *                                                                 01410000
+       01   out-MF431o.                                                 01420021
+            02 MF431o-ll        PIC s9(4) COMP.                         01421021
+            02 MF431o-zz        PIC XX.                                 01421121
+            02 MF431o-donnees.                                          01450021
+               03 MF431o-choix  PIC X(7).                               01451021
+               03 MF431o-clecli PIC X(6).                               01452021
+               03 MF431o-info   PIC X(79).                              01453021
+      *                                                                 01610000
+      ****************************************************************  01630000
+      * fields sent to message routine                               *  01640000
+      ****************************************************************  01650000
+       01  msgcode              PIC X(04).                              01660007
+                                                                        01670000
+       01  outmsg               PIC X(69).                              01680007
+      ****************************************************************  01790000
+      *               LINKAGE SECTION                                *  01800000
+      ****************************************************************  01810000
+       LINKAGE SECTION.                                                 01820000
+      ****************************************************************  01830000
+      *           DECLARATION FOR IO                                 *  01840000
+      ****************************************************************  01850000
+      *                                                                 01860000
+       01  iopcb.                                                       01870000
+           02 iopcb-term        PIC X(8).                               01880007
+           02 filler            PIC X(2).                               01890007
+           02 iopcb-rc          PIC X(2).                               01900007
+           02 cdate             PIC X(4).                               01910007
+           02 ctime             PIC X(4).                               01920007
+           02 seqnum            PIC X(4).                               01930007
+           02 iopcb-modname     PIC X(8).                               01940007
+           02 userid            PIC X(8).                               01950007
+           02 db2-group         PIC X(8).                               01951007
+      *                                                                 01960000
+       01  altpcb.                                                      01970000
+           02 altpcb-term       PIC X(8).                               01980007
+           02 altpcb-filler     PIC X(2).                               01990007
+           02 altpcb-rc         PIC X(2).                               02000007
+                                                                        02010000
+       PROCEDURE DIVISION.                                              02020000
+      *---------------------                                            02030000
+      *           appel DLITCBL                                         02040002
+           ENTRY 'DLITCBL' USING iopcb, altpcb.                         02050022
+        main-programme.                                                 02051007
+           PERFORM fonction-init                                        02052011
+              THRU fonction-init-f.                                     02053011
+           PERFORM fonction-trt-message                                 02056011
+              THRU fonction-trt-message-f.                              02057011
+           GO TO main-programme-fin.                                    02059300
+      *                                                                 02059400
+      *    Traitement erreur IMS indéfinie                              02059500
+      *                                                                 02059600
+        main-errors.                                                    02059707
+           MOVE 'ERREUR IMS ABANDON TRANSACTON' TO mess-info.           02059800
+           PERFORM fonction-reponse-iopcb                               02059911
+              THRU fonction-reponse-iopcb-f.                            02060011
+        main-programme-fin.                                             02060107
+           GOBACK.                                                      02060200
+      ****************************************************************  02061000
+      *         fonction-initIALISATION                              *  02070009
+      ****************************************************************  02080000
+      *                                                                 02090000
+       fonction-init.                                                   02100009
+           MOVE SPACES     TO in-MF431i.                                02120021
+           MOVE SPACES     TO w-spa-donnees.                            02121000
+           MOVE 'MF431O1'  TO modname.                                  02130021
+           MOVE LENGTH OF out-MF431o  TO MF431o-ll.                     02170021
+      *         la transaction par defaut est Z043                      02170121
+           MOVE SPACES     TO tran-chng.                                02170200
+       fonction-init-f.                                                 02171009
+           EXIT.                                                        02172000
+       fonction-trt-message.                                            02182109
+      *         initialisation code traitement                          02182200
+           SET b-trt-null TO TRUE.                                      02182309
+      *         recuperation SPA / message                              02182400
+           PERFORM fonction-gu-iopcb                                    02182511
+               THRU fonction-gu-iopcb-f.                                02182611
+           PERFORM fonction-ctrlcmde-gu                                 02182711
+              THRU fonction-ctrlcmde-gu-f.                              02182811
+           IF NOT b-trt-abandon THEN                                    02183107
+              PERFORM fonction-gn-iopcb                                 02183211
+                 THRU fonction-gn-iopcb-f                               02183311
+              PERFORM fonction-ctrlcmde-gn                              02183411
+                 THRU fonction-ctrlcmde-gn-f                            02183511
+           END-IF.                                                      02183607
+      *         définition action utilisateur                           02184400
+           PERFORM fonction-init-contexte                               02184511
+              THRU fonction-init-contexte-f.                            02184611
+      *         controle contenu message                                02184700
+           IF NOT b-trt-exit THEN                                       02184809
+              PERFORM fonction-ctrlmess                                 02184911
+                 THRU fonction-ctrlmess-f                               02185011
+           END-IF.                                                      02185111
+      *         enchainement                                            02185900
+           PERFORM fonction-enchainement                                02186011
+              THRU fonction-enchainement-f.                             02186111
+       fonction-trt-message-f.                                          02186209
+           EXIT.                                                        02186300
+      *                                                                 02186400
+      *         reponse                                                 02186500
+      *                                                                 02186600
+       fonction-enchainement.                                           02187009
+           DISPLAY 'IM43CMNU in:' in-MF431i.                            02188021
+           EVALUATE TRUE                                                02188409
+           WHEN b-action-abandon                                        02189320
+              MOVE MF431i-choix  TO w-spa-choix                         02189421
+              MOVE MF431i-clecli TO w-spa-clecli                        02189521
+              MOVE 'ARRET TRANSACTION' TO mess-info                     02189620
+      *                                                                 02189720
+              MOVE tran-menu TO tran-chng                               02189820
+              PERFORM fonction-reponse-iopcb                            02189920
+                 THRU fonction-reponse-iopcb-f                          02190020
+           WHEN b-trt-goback                                            02190120
+              MOVE MF431i-choix  TO w-spa-choix                         02190221
+              MOVE MF431i-clecli TO w-spa-clecli                        02190321
+              MOVE 'ARRET dialogue' TO mess-info                        02190420
+      *                                                                 02190520
+              MOVE tran-menu TO tran-chng                               02190620
+              PERFORM fonction-reponse-iopcb                            02190720
+                 THRU fonction-reponse-iopcb-f                          02190820
+           WHEN b-trt-reaff                                             02190920
+              MOVE 'NOUVELLE SAISIE' TO mess-info                       02191020
+              PERFORM fonction-reponse-iopcb                            02191120
+                 THRU fonction-reponse-iopcb-f                          02191220
+           WHEN b-trt-abandon                                           02191320
+              PERFORM fonction-reponse-iopcb                            02191420
+                 THRU fonction-reponse-iopcb-f                          02191520
+           WHEN b-trt-liste                                             02191620
+              MOVE MF431i-choix  TO w-spa-choix                         02191721
+              MOVE MF431i-clecli TO w-spa-clecli                        02191821
+      *                                                                 02191920
+              MOVE tran-liste TO tran-chng                              02192020
+              PERFORM fonction-reponse-altpcb                           02192120
+                 THRU fonction-reponse-altpcb-f                         02192220
+           WHEN b-trt-consult                                           02192320
+              MOVE MF431i-choix  TO w-spa-choix                         02192421
+              MOVE MF431i-clecli TO w-spa-clecli                        02192521
+      *                                                                 02192620
+              MOVE stclient TO   mess-temp                              02192720
+      *                                                                 02192820
+              MOVE tran-consultation TO tran-chng                       02192920
+              PERFORM fonction-reponse-altpcb                           02193020
+                 THRU fonction-reponse-altpcb-f                         02193120
+           WHEN b-trt-ajout                                             02193220
+              MOVE MF431i-choix  TO w-spa-choix                         02193321
+              MOVE MF431i-clecli TO w-spa-clecli                        02193421
+      *                                                                 02193520
+              MOVE 'ajout' TO mess-temp                                 02193620
+      *                                                                 02193720
+              MOVE tran-ajout TO tran-chng                              02193820
+              PERFORM fonction-reponse-altpcb                           02193920
+                 THRU fonction-reponse-altpcb-f                         02194020
+           WHEN b-trt-modification                                      02194120
+              MOVE MF431i-choix  TO w-spa-choix                         02194221
+              MOVE MF431i-clecli TO w-spa-clecli                        02194321
+      *                                                                 02194420
+              MOVE stclient TO   mess-temp                              02194520
+      *                                                                 02194620
+              MOVE tran-modification TO tran-chng                       02194720
+              PERFORM fonction-reponse-altpcb                           02194820
+                 THRU fonction-reponse-altpcb-f                         02194920
+           WHEN b-trt-suppression                                       02195020
+              MOVE MF431i-choix  TO w-spa-choix                         02195121
+              MOVE MF431i-clecli TO w-spa-clecli                        02195221
+      *                                                                 02195320
+              MOVE stclient TO   mess-temp                              02195420
+      *                                                                 02195520
+              MOVE tran-suppression  TO tran-chng                       02195620
+              PERFORM fonction-reponse-altpcb                           02195720
+                 THRU fonction-reponse-altpcb-f                         02195820
+           WHEN OTHER                                                   02195920
+              MOVE SPACES  to w-spa-donnees                             02196020
+              MOVE 'erreur transaction'  TO mess-temp                   02196120
+      *                                                                 02196220
+              MOVE SPACES TO tran-chng                                  02196320
+              PERFORM fonction-reponse-iopcb                            02196420
+                 THRU fonction-reponse-iopcb-f                          02196520
+           END-EVALUATE.                                                02196620
+       fonction-enchainement-f.                                         02197009
+           EXIT.                                                        02200000
+      ****************************************************************  03001000
+      *    récupération données                                      *  03002000
+      *         acquision SPA                                        *  03003000
+      ****************************************************************  03004000
+       fonction-gu-iopcb.                                               03005509
+      *         lecture SPA                                             03006202
+           CALL 'CBLTDLI' USING gu-fct iopcb w-spa.                     03006322
+      *                                                                 03006500
+           DISPLAY 'IM43CMNU-Gu SPA:' w-spa.                            03006621
+       fonction-gu-iopcb-f.                                             03009709
+           EXIT.                                                        03009800
+      ****************************************************************  03009900
+      *    récupération données                                      *  03010000
+      *         controle acquisition SPA                             *  03010100
+      ****************************************************************  03010200
+       fonction-ctrlcmde-gu.                                            03013209
+           EVALUATE iopcb-rc                                            03013422
+      *           test return code iopcb ok                             03013502
+           WHEN '  '                                                    03013622
+              CONTINUE                                                  03013700
+      *           test return code iopcb 'message non traite'           03013802
+           WHEN rc-mess-exist                                           03013922
+              MOVE SPACES to w-spa                                      03014000
+      *           test return code iopcb 'plus de message'              03014102
+           WHEN rc-no-message                                           03014222
+              SET b-trt-goback to TRUE                                  03014309
+           WHEN OTHER                                                   03014400
+              MOVE 'ERREUR GU IOPCB' TO mess-temp                       03014500
+              SET b-trt-abandon TO TRUE                                 03014609
+           END-EVALUATE.                                                03014707
+       fonction-ctrlcmde-gu-f.                                          03014809
+           EXIT.                                                        03015000
+      ****************************************************************  03015100
+      *    récupération données                                      *  03015200
+      *         acquisition message                                  *  03015300
+      ****************************************************************  03015400
+       fonction-gn-iopcb.                                               03015509
+      *         lecture message dans in-MF431i                          03015621
+           CALL 'CBLTDLI' USING gn-fct iopcb in-MF431i                  03015722
+           DISPLAY 'IM43CMNU-GN MES:' iopcb-rc '*' in-MF431i.           03016422
+       fonction-gn-iopcb-f.                                             03016609
+           EXIT.                                                        03016700
+      ****************************************************************  03016800
+      *    récupération données                                      *  03016900
+      *         controle acquisition message                         *  03017000
+      ****************************************************************  03017100
+       fonction-ctrlcmde-gn.                                            03017209
+           EVALUATE TRUE                                                03017409
+           WHEN iopcb-rc = '  '                                         03017500
+             AND MF431i-ll > 4                                          03017621
+              CONTINUE                                                  03017700
+           WHEN iopcb-rc = rc-no-segment                                03017800
+              DISPLAY 'IM43CMNU-GN spa:' w-spa                          03017921
+              MOVE w-spa-choix to MF431i-choix                          03018021
+              MOVE w-spa-clecli to MF431i-clecli                        03018121
+              SET b-trt-goback TO TRUE                                  03018209
+           WHEN MF431i-ll < 5                                           03018321
+              MOVE 'AUCUNE SAISIE' TO mess-temp                         03018400
+              SET b-trt-abandon TO TRUE                                 03018509
+           WHEN OTHER                                                   03018600
+              MOVE 'ERREUR GN IOPCB' TO mess-temp                       03018700
+              SET b-trt-abandon TO TRUE                                 03018809
+           END-EVALUATE.                                                03018907
+           MOVE MF431i-donnees  TO w-donnees.                           03019021
+       fonction-ctrlcmde-gn-f.                                          03019109
+           EXIT.                                                        03020000
+      ****************************************************************  03023200
+      *    controle données message                                     03023300
+      ****************************************************************  03023400
+       fonction-ctrlmess.                                               03023609
+           PERFORM fonction-check-message THRU fonction-check-message-f.03023809
+           IF NOT b-trt-abandon THEN                                    03025107
+              MOVE MF431i-clecli  TO cle-lec-client                     03025221
+              PERFORM fonction-ctrlfich                                 03025311
+                 THRU fonction-ctrlfich-f                               03025411
+           END-IF.                                                      03025907
+       fonction-ctrlmess-f.                                             03026009
+           EXIT.                                                        03026100
+      ****************************************************************  03026200
+      *    controle données message                                  *  03026300
+      *         recadrage données message                            *  03026400
+      ****************************************************************  03026500
+       fonction-check-message.                                          03026609
+      *    CHECK THE LEADING SPACE PFKIN                                03026700
+           MOVE MF431i-pfkin TO w-space-input.                          03026921
+           MOVE ZERO to w-space-ctr.                                    03027000
+           MOVE SPACES TO w-space-output.                               03027100
+           INSPECT w-space-input                                        03027200
+             TALLYING w-space-ctr FOR LEADING                           03027300
+             SPACE REPLACING LEADING SPACE BY '*'.                      03027400
+           IF w-space-ctr > 0 THEN                                      03027500
+             UNSTRING w-space-input                                     03027600
+               DELIMITED BY ALL '*'                                     03027700
+               INTO w-space-output                                      03027800
+             MOVE w-space-output TO MF431i-pfkin                        03027921
+           END-IF.                                                      03028007
+      *    CHECK THE LEADING SPACE ACTION                               03028100
+           MOVE MF431i-choix TO w-space-input.                          03028221
+           MOVE ZERO to w-space-ctr.                                    03028300
+           MOVE SPACES TO w-space-output.                               03028400
+           INSPECT w-space-input                                        03028500
+             TALLYING w-space-ctr FOR LEADING                           03028700
+             SPACE REPLACING LEADING SPACE BY '*'.                      03028800
+           STRING '-' MF431i-choix '-' w-space-input                    03028921
+                     DELIMITED BY SIZE INTO w-donnees.                  03029000
+           IF w-space-ctr > 0 THEN                                      03029100
+             UNSTRING w-space-input                                     03029200
+               DELIMITED BY ALL '*'                                     03029300
+               INTO w-space-output                                      03029400
+             MOVE w-space-output TO MF431i-choix                        03029521
+           END-IF.                                                      03029607
+      *    CHECK THE LEADING SPACE CLE CLIENT                           03029700
+           MOVE ZERO to w-space-ctr.                                    03029800
+           MOVE MF431i-clecli TO w-space-input.                         03030021
+           MOVE SPACES TO w-space-output.                               03030200
+           INSPECT w-space-input                                        03030300
+             TALLYING w-space-ctr FOR LEADING                           03030500
+             SPACE REPLACING LEADING SPACE BY '*'.                      03030600
+           IF w-space-ctr > 0 THEN                                      03030700
+             UNSTRING w-space-input                                     03030800
+               DELIMITED BY ALL '*'                                     03031000
+               INTO w-space-output                                      03031100
+             MOVE w-space-output TO MF431i-clecli                       03031221
+           END-IF.                                                      03031307
+       fonction-check-message-f.                                        03031409
+           EXIT.                                                        03031500
+      ****************************************************************  03031600
+      *    controle données message                                  *  03031700
+      *         initialisation CONTEXTE                              *  03031800
+      ****************************************************************  03031900
+       fonction-init-contexte.                                          03032009
+      *    definition action utilisateur                                03032100
+           EVALUATE TRUE                                                03032209
+           WHEN b-trt-goback                                            03032307
+              CONTINUE                                                  03032400
+           WHEN MF431i-pfkin = '  '                                     03032521
+              SET b-action-suite TO TRUE                                03032609
+           WHEN MF431i-pfkin = '03'                                     03032721
+              SET b-action-abandon TO TRUE                              03032809
+           WHEN OTHER                                                   03032900
+              SET b-action-suite TO TRUE                                03033009
+           END-EVALUATE.                                                03033107
+      *    validation choix                                             03033200
+           EVALUATE TRUE                                                03033309
+           WHEN b-trt-goback                                            03033407
+              CONTINUE                                                  03033500
+           WHEN b-action-abandon                                        03033607
+              SET b-trt-fin TO TRUE                                     03033709
+              MOVE 'ARRET TRANSACTION' TO mess-temp                     03033800
+           WHEN MF431i-choix = 'FIN    '                                03033921
+              SET b-trt-fin TO TRUE                                     03034009
+              MOVE 'ARRET TRANSACTION' TO mess-temp                     03034100
+           WHEN MF431i-choix = '1      '                                03034222
+              SET b-trt-liste TO TRUE                                   03034309
+           WHEN MF431i-choix = '2      '                                03034422
+              SET b-trt-consult TO TRUE                                 03034509
+           WHEN MF431i-choix = '3      '                                03034622
+              SET b-trt-ajout TO TRUE                                   03034709
+           WHEN MF431i-choix = '4      '                                03034822
+              SET b-trt-modification TO TRUE                            03034909
+           WHEN MF431i-choix = '5      '                                03035022
+              SET b-trt-suppression TO TRUE                             03035109
+           WHEN MF431i-choix = 'REAFF  '                                03035222
+              SET b-trt-reaff TO TRUE                                   03035320
+           WHEN OTHER                                                   03035420
+              MOVE 'ERREUR TRANSACTION' TO mess-temp                    03035522
+      *       STRING '|' MF431i-choix                                   03035622
+      *              '|'                                                03035722
+      *              DELIMITED BY SIZE INTO mess-temp                   03035822
+              SET b-trt-erreur TO TRUE                                  03036222
+           END-EVALUATE.                                                03036322
+       fonction-init-contexte-f.                                        03036422
+           EXIT.                                                        03036522
+      ****************************************************************  03036622
+      *    controle données message                                  *  03036722
+      *         acces table DB2                                      *  03036822
+      ****************************************************************  03036922
+       fonction-ctrlfich.                                               03037022
+           MOVE SPACES TO stclient.                                     03037122
+           PERFORM fonction-lec-client                                  03037222
+              THRU fonction-lec-client-f.                               03037322
+           EVALUATE TRUE                                                03037422
+           WHEN b-client-absent                                         03037522
+            AND b-trt-ajout                                             03037622
+              MOVE SPACES TO w-spa-donnees                              03037722
+           WHEN b-client-trouve                                         03037822
+            AND NOT b-trt-ajout                                         03037922
+              MOVE stclient TO w-spa-stclient mess-temp                 03038022
+           WHEN b-client-absent                                         03038122
+            AND not b-trt-ajout                                         03038222
+              MOVE 'client absent' TO mess-temp                         03038322
+              SET b-trt-abandon TO TRUE                                 03038422
+           WHEN b-client-trouve                                         03038522
+            AND b-trt-ajout                                             03038622
+              SET b-trt-abandon TO TRUE                                 03038722
+              MOVE 'client present' TO mess-temp                        03038822
+           WHEN OTHER                                                   03038922
+              MOVE sqlcode TO e-sqlcode                                 03039022
+              STRING 'erreur ' MF431i-donnees                           03039122
+                     '*' e-sqlcode '*' sqlstate                         03039222
+                     DELIMITED BY SIZE INTO mess-temp                   03039322
+              SET b-trt-abandon TO TRUE                                 03039422
+           END-EVALUATE.                                                03039522
+       fonction-ctrlfich-f.                                             03039622
+           EXIT.                                                        03039722
+      *                                                                 03039822
+      *                     LECTURE FICHIER CLIENT                      03039922
+      *                                                                 03040022
+       fonction-lec-client.                                             03040122
+           EXEC SQL                                                     03040222
+             SELECT                                                     03040322
+               numb,                                                    03040422
+               stat,                                                    03040522
+               name,                                                    03040622
+               addrx,                                                   03040722
+               phone,                                                   03040822
+               datex,                                                   03040922
+               amount,                                                  03041022
+               comment                                                  03041122
+             INTO                                                       03041222
+              :client-numb,                                             03041322
+              :client-stat,                                             03041422
+              :client-name,                                             03041522
+              :client-addrx,                                            03041622
+              :client-phone,                                            03041722
+              :client-datex,                                            03041822
+              :client-amount,                                           03041922
+              :client-comment                                           03042022
+             FROM client                                                03042122
+             WHERE numb = :cle-lec-client                               03042222
+           END-EXEC.                                                    03042322
+           IF SQLCODE = 0 THEN                                          03042422
+              SET b-client-trouve TO TRUE                               03042522
+           ELSE                                                         03042622
+              IF SQLCODE = +100 THEN                                    03042722
+                 SET b-client-absent TO TRUE                            03042822
+              ELSE                                                      03042922
+                 SET b-client-erreur TO TRUE                            03043022
+              END-IF                                                    03043122
+           END-IF.                                                      03043222
+       fonction-lec-client-f.                                           03043322
+           EXIT.                                                        03043422
+      *                                                               5 03043522
+      * PROCEDURE reponse via iocpb                                     03043622
+      *                                                                 03043722
+       fonction-reponse-iopcb.                                          03043822
+           STRING 'V-k ' mess-temp ' '                                  03043922
+                  w-donnees                                             03044022
+                DELIMITED BY SIZE INTO mess-info.                       03045022
+           PERFORM fonction-isrt-io-spa                                 03050011
+              THRU fonction-isrt-io-spa-f.                              03050111
+           IF w-spa-tran  = SPACES THEN                                 03051000
+              PERFORM fonction-isrt-io                                  03060011
+                 THRU fonction-isrt-io-f                                03060111
+           END-IF.                                                      03060207
+       fonction-reponse-iopcb-f.                                        03061009
+           EXIT.                                                        03080000
+                                                                        03090000
+      * PROCEDURE isrt-io-spa : SPA INSERT FOR IOPCB REQUEST HANDLER    03100000
+                                                                        03110000
+       fonction-isrt-io-spa.                                            03120009
+           MOVE LENGTH OF w-spa TO w-spa-ll.                            03130000
+           IF NOT b-trt-exit THEN                                       03131009
+              MOVE 'Z043'       TO w-spa-tran                           03133021
+           ELSE                                                         03134000
+              MOVE SPACES       TO w-spa-tran                           03135000
+              MOVE 'MF431O'     TO modname                              03135121
+           END-IF.                                                      03136007
+      *         insertion SPA (w-spa)                                   03137002
+           CALL 'CBLTDLI' USING isrt-fct iopcb w-spa.                   03138022
+      *         test return code invalide                               03139002
+           IF iopcb-rc NOT = SPACES  THEN                               03190022
+              STRING 'err.ISRT IO SPA '  iopcb-rc                       03202000
+                w-spa                                                   03202100
+                DELIMITED BY SIZE INTO mess-info                        03203000
+              DISPLAY 'IM43CMNU isrt io spa:' mess-info                 03203121
+              SET b-trt-erreur TO TRUE                                  03204009
+           END-IF.                                                      03205007
+           DISPLAY 'IM43CMNU-ISRT io spa:' w-spa.                       03206021
+       fonction-isrt-io-spa-f.                                          03210009
+           EXIT.                                                        03220000
+                                                                        03230000
+      * PROCEDURE isrt-io : INSERT FOR IOPCB REQUEST HANDLER            03240000
+                                                                        03250000
+       fonction-isrt-io.                                                03260009
+           MOVE LENGTH OF out-MF431o to MF431o-ll.                      03261021
+           MOVE mess-info TO MF431o-info.                               03262021
+           MOVE w-spa-choix TO MF431o-choix.                            03263021
+           MOVE w-spa-clecli TO MF431o-clecli.                          03264021
+           IF modname = SPACES THEN                                     03265000
+      *         insertion message out-MF431o sur iopcb                  03266021
+      *             sans modification modname                           03266102
+           CALL 'CBLTDLI' USING isrt-fct IOPCB out-MF431o               03267022
+           ELSE                                                         03310000
+      *         insertion message out-MF431o sur iopcb                  03311021
+      *            avec  modification modname                           03311102
+           CALL 'CBLTDLI' USING isrt-fct IOPCB out-MF431o modname       03313022
+           END-IF.                                                      03331007
+      *         test code retour  invalide                              03332002
+           IF iopcb-rc NOT = SPACES  THEN                               03341022
+              STRING 'erreur ISRT IO MESS '   iopcb-rc                  03342000
+                     '-' modname '-'                                    03342100
+                     DELIMITED BY SIZE INTO mess-info                   03343000
+              DISPLAY 'IM43CMNU isrt io mes:' mess-info                 03343121
+              SET b-trt-erreur TO TRUE                                  03344009
+           END-IF.                                                      03345007
+           DISPLAY 'IM43CMNU-ISRT io mes:' out-MF431o.                  03346021
+       fonction-isrt-io-f.                                              03360009
+           EXIT.                                                        03370000
+      *                                                               5 03371000
+      * PROCEDURE reponse via altpcb                                    03372000
+      *                                                                 03373000
+       fonction-reponse-altpcb.                                         03374009
+      *         insertion message si pas de changement de desitination  03375002
+           IF tran-chng  = SPACES THEN                                  03376000
+              PERFORM fonction-isrt-alt                                 03377011
+                 THRU fonction-isrt-alt-f                               03377111
+           END-IF.                                                      03377207
+      *                                                                 03377300
+           PERFORM fonction-isrt-alt-spa                                03377611
+              THRU fonction-isrt-alt-spa-f.                             03377711
+       fonction-reponse-altpcb-f.                                       03378109
+           EXIT.                                                        03379000
+                                                                        03380000
+      * PROCEDURE fonction-isrt-alt-spa :                               03390009
+      *       - changement destination si nécessaire                    03391005
+      *       - insertion w-spa                                         03392005
+                                                                        03400000
+       fonction-isrt-alt-spa.                                           03410009
+      *                                                                 03410102
+           IF tran-chng not = SPACES THEN                               03410500
+      *         change destination alternate pcb                        03410602
+      *             avec transaction tran-chng                          03410702
+           CALL 'CBLTDLI' using chng-fct altpcb tran-chng               03410822
+      *         test code retour alternate pcb invalide                 03410902
+              IF altpcb-rc NOT = SPACES THEN                            03411022
+                 STRING 'erreur chng ALT mess '  altpcb-rc              03411100
+                    DELIMITED BY SIZE INTO mess-info                    03411200
+                 DISPLAY 'IM43CMNU-' mess-info                          03411321
+              END-IF                                                    03411407
+            END-IF.                                                     03411507
+           DISPLAY 'IM43CMNU-chng ALT:' tran-chng '-'.                  03411621
+      *                                                                 03411700
+           MOVE LENGTH OF w-spa TO w-spa-ll.                            03412100
+           MOVE tran-chng       TO w-spa-tran.                          03413000
+      *         insertion SPA (w-spa)  avec changement destination      03414002
+           CALL 'CBLTDLI' USING isrt-fct altpcb w-spa.                  03415022
+      *         test return code alternate pcb  invalide                03431002
+           IF altpcb-rc NOT = SPACES THEN                               03440022
+              STRING 'erreur ISRT ALT SPA ' altpcb-rc                   03450000
+                     DELIMITED BY SIZE INTO mess-info                   03460000
+              SET b-trt-erreur TO TRUE                                  03470009
+              DISPLAY 'IM43CMNU-' mess-info                             03471021
+           END-IF.                                                      03480007
+           DISPLAY 'IM43CMNU-ISRT alt SPA:' w-spa.                      03481021
+       fonction-isrt-alt-spa-f.                                         03490009
+           EXIT.                                                        03500000
+                                                                        03510000
+      * PROCEDURE isrt-alt : INSERT message alternate pcb               03520002
+                                                                        03530000
+       fonction-isrt-alt.                                               03540009
+           MOVE LENGTH OF out-MF431o TO MF431o-ll.                      03549221
+           MOVE w-spa-choix TO MF431o-choix.                            03549321
+           MOVE w-spa-clecli TO MF431o-clecli.                          03549421
+      *         insertion message alternate pcb                         03549502
+           CALL 'CBLTDLI' using isrt-fct altpcb.                        03549622
+      *         test return code alternate pcb  invalide                03549702
+           IF altpcb-rc NOT = SPACES THEN                               03549822
+              STRING 'erreur ISRT ALT mess '  altpcb-rc                 03549900
+                     '-' modname '-'                                    03550000
+                     DELIMITED BY SIZE INTO mess-info                   03550100
+              DiSPLAY 'IM43CMNU-' mess-info                             03550222
+           END-IF.                                                      03551007
+           DISPLAY 'IM43CMNU-isrt ALT mes:' out-MF431o.                 03560021
+       fonction-isrt-alt-f.                                             03670009
+           EXIT.                                                        03680000
+

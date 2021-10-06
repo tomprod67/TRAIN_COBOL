@@ -1,0 +1,517 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. IM43BROW.
+
+      ******* IM43brow - IMS SUBSYSTEM INTERFACE MODULE - COBOL ********
+      *                                                               *
+      *   MODULE NAME = IM43brow                                      *
+      *                                                               *
+      *   DESCRIPTIVE NAME = DB2 SAMPLE APPLICATION                   *
+      *                      SUBSYSTEM INTERFACE MODULE               *
+      *                      IMS                                      *
+      *                      COBOL                                    *
+      *                      AFFICHE INFORMATIONS D'UN CLIENT         *
+      *                                                               *
+      ******************************************************************
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.
+       INPUT-OUTPUT SECTION.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+      ****************************************************************
+      *                declaration for ims                           *
+      ****************************************************************
+      *
+       77  gu-fct               PIC X(4) VALUE  'GU  '.
+       77  gn-fct               PIC X(4)  VALUE 'GN  '.
+       77  isrt-fct             PIC X(4) VALUE  'ISRT'.
+       77  chng-fct             PIC X(4) VALUE  'CHNG'.
+       77  roll-fct             PIC X(4) VALUE  'ROLL'.
+       77  rc-no-segment        PIC X(2) VALUE 'QD'.
+       77  rc-no-message        PIC X(2) VALUE 'QC'.
+       77  rc-mess-exist        PIC X(2) VALUE 'CF'.
+      *
+       77  modname              PIC X(8).
+       77  tran-chng            PIC X(8).
+       77  tran-menu            PIC X(8) VALUE 'Z043'.
+       77  new-dest             PIC X(8) VALUE 'IM43CMNU'.
+      *
+       77  w-space-ctr          PIC 9(2) COMP.
+       77  w-space-input        PIC X(8) VALUE      SPACES.
+       77  w-space-output       PIC X(8) VALUE      SPACES.
+
+      * SCRATCH PAD AREA
+
+       01  w-spa.
+           05  w-spa-ll         PIC s9(4) COMP.
+           05  w-spa-zzzz       PIC XXXX.
+           05  w-spa-tran       PIC X(8).
+           05  w-spa-im43cmnu.
+               10 w-spa-choix   PIC X(7).
+               10 w-spa-clecli  PIC X(6).
+           05  w-spa-stclient.
+               10 w-spa-stcle   PIC x(6).
+               10 filler        PIC x(74).
+      ****************************************************************
+      *                declaration dialogue                          *
+      ****************************************************************
+       01  w-controle       PIC X.
+           88 w-controle-ok   VALUE  '0'.
+           88 w-controle-ko  VALUE  '9'.
+       01  w-action         PIC X.
+           88 b-action-suite  VALUE  '0'.
+           88 b-action-abandon  VALUE  '9'.
+       01  w-trt            PIC X.
+           88 b-trt-consult   VALUE  '1'.
+           88 b-trt-reaffich  VALUE  '2'.
+           88 b-trt-goback    VALUE  '5'.
+           88 b-trt-fin       VALUE  '6'.
+           88 b-trt-abandon   VALUE  '5' '6' '8'.
+           88 b-trt-erreur    VALUE  '9'.
+           88 b-trt-rejet     VALUE  '8', '9'.
+           88 b-trt-exit      VALUE  '5' '6' '7' '8' '9'.
+       01  mess-info       PIC X(80).
+      ****************************************************************
+      *                declaration table client                      *
+      ****************************************************************
+      *
+      *------table db2 client
+      *
+       01  cle-lec-client PIC X(6).
+       01  w-client             PIC X.
+           88 b-client-trouve   VALUE  'y'.
+           88 b-client-absent   VALUE  'n'.
+           88 b-client-erreur   VALUE  'x'.
+           EXEC SQL
+             INCLUDE cy43dcli
+           end-EXEC.
+           EXEC SQL
+             INCLUDE SQLCA
+           end-EXEC.
+      ****************************************************************
+      *       declaration for input:  midname MF432i                 *
+      ****************************************************************
+      *
+       01  in-MF432i.
+           05 MF432i-ll        pic s9(4) COMP.
+           05 MF432i-zz        pic XX.
+           05 MF432i-donnees.
+              10 MF432i-title  pic x(12).
+              10 MF432i-numb   pic x(6).
+              10 MF432i-name   PIC X(20).
+              10 MF432i-addr   PIC X(20).
+              10 MF432i-phone  PIC X(8).
+              10 MF432i-date   PIC X(8).
+              10 MF432i-amount PIC X(8).
+              10 MF432i-coment PIC X(9).
+              10 MF432i-info1  PIC X(39).
+              10 MF432i-info2  PIC X(39).
+              10 MF432i-pfkin  pic xx.
+      *
+      ****************************************************************
+      *       declaration for output: modname MF432o                 *
+      ****************************************************************
+      *
+       01  out-MF432o.
+           05 MF432o-ll        PIC s9(4) COMP.
+           05 MF432o-zz        PIC XX.
+           05 MF432o-donnees.
+              10 MF432o-title  PIC X(12).
+              10 MF432o-numb   PIC X(6).
+              10 MF432o-name   PIC X(20).
+              10 MF432o-addr   PIC X(20).
+              10 MF432o-phone  PIC X(8).
+              10 MF432o-date   PIC X(8).
+              10 MF432o-amount PIC X(8).
+              10 MF432o-coment PIC X(9).
+              10 MF432o-info1  PIC X(39).
+              10 MF432o-info2  PIC X(39).
+              10 MF432o-info   PIC X(79).
+      *
+      ****************************************************************
+      *       declaration for output: modname MF431o  (menu)         *
+      ****************************************************************
+      *
+       01   out-MF431o.
+            02 MF431o-ll        PIC s9(4) COMP.
+            02 MF431o-zz        PIC XX.
+            02 MF431o-donnees.
+               03 MF431o-choix  PIC X(7).
+               03 MF431o-clecli PIC X(6).
+               03 MF431o-info   PIC X(79).
+      *
+      ****************************************************************
+      * fields sent TO message routine                               *
+      ****************************************************************
+       01  msgcode              PIC X(04).
+
+       01  outmsg               PIC X(69).
+      ****************************************************************
+      *               LINKAGE SECTION                                *
+      ****************************************************************
+       LINKAGE SECTION.
+      ****************************************************************
+      *           DECLARATION FOR IO                                 *
+      ****************************************************************
+      *
+       01  iopcb.
+           02 iopcb-term        PIC X(8).
+           02 filler            PIC X(2).
+           02 iopcb-rc          PIC X(2).
+           02 cdate             PIC X(4).
+           02 ctime             PIC X(4).
+           02 seqnum            PIC X(4).
+           02 iopcb-modname     PIC X(8).
+           02 userid            PIC X(8).
+           02 db2-group         PIC X(8).
+      *
+       01  altpcb.
+           02 altpcb-term       PIC X(8).
+           02 altpcb-filler     PIC X(2).
+           02 altpcb-rc         PIC X(2).
+
+       PROCEDURE DIVISION.
+      *---------------------
+      *
+           ENTRY 'DLITCBL' USING IOPCB ALTPCB.
+        main-programme.
+           PERFORM fonction-init THRU fonction-init-f.
+           PERFORM fonction-trait-message
+              THRU fonction-trait-message-f.
+           GO TO main-programme-fin.
+      *
+      *    traitement erreur ims indéfinie
+      *
+        main-errors.
+           MOVE 'erreur ims abandon transacton' TO mess-info.
+           PERFORM fonction-reponse-iopcb
+              THRU fonction-reponse-iopcb-f.
+        main-programme-fin.
+           GOBACK.
+
+       fonction-init.
+           EXIT.
+       fonction-init-f.
+           EXIT.
+       fonction-trait-message.
+      *         recuperation spa / message
+           PERFORM fonction-gu-iopcb THRU fonction-gu-iopcb-f.
+           PERFORM fonction-ctrlcmde-gu THRU fonction-ctrlcmde-gu-f.
+           IF NOT b-trt-abandon THEN
+              MOVE w-spa-clecli  TO cle-lec-client
+              PERFORM fonction-gn-iopcb THRU fonction-gn-iopcb-f
+      *       test return code message lu
+              IF iopcb-rc = '  ' THEN
+                 IF MF432i-numb NOT = SPACES THEN
+                    MOVE MF432i-numb   TO cle-lec-client
+                 END-IF
+              END-IF
+           END-IF.
+      *         controle message
+           PERFORM fonction-ctrlmess THRU fonction-ctrlmess-f.
+      *         enchainement
+           PERFORM fonction-enchainement THRU fonction-enchainement-f.
+       fonction-trait-message-f.
+           EXIT.
+      *
+      *         reponse
+      *
+       fonction-enchainement.
+           EVALUATE TRUE
+           WHEN b-action-abandon
+             or b-trt-goback
+              MOVE SPACES TO MF431o-donnees
+              MOVE 'Z243'        TO MF431o-choix
+              MOVE w-spa-clecli  TO MF431o-clecli
+              MOVE 'transaction abandonnee'  TO MF431o-info
+      *
+              PERFORM fonction-reponse-stop THRU fonction-reponse-stop-f
+           WHEN b-trt-abandon
+              MOVE SPACES TO MF431o-donnees
+              MOVE 'Z243'        TO MF431o-choix
+              MOVE w-spa-clecli  TO MF431o-clecli
+              MOVE mess-info     TO MF431o-info
+      *
+              PERFORM fonction-reponse-stop THRU fonction-reponse-stop-f
+           WHEN b-trt-consult
+              MOVE stclient TO w-spa-stclient
+      *
+              PERFORM fonction-load-MF432fo
+                 THRU fonction-load-MF432fo-f
+              PERFORM fonction-reponse-iopcb THRU fonction-reponse-iopcb
+           WHEN b-trt-reaffich
+              MOVE stclient TO w-spa-stclient
+      *
+              PERFORM fonction-load-MF432fo
+                 THRU fonction-load-MF432fo-f
+              PERFORM fonction-reponse-iopcb THRU fonction-reponse-iopcb
+           WHEN OTHER
+              MOVE SPACES TO MF431o-donnees
+              MOVE 'Z243'        TO MF431o-choix
+              MOVE w-spa-clecli  TO MF431o-clecli
+              MOVE mess-info     TO MF431o-info
+      *
+              PERFORM fonction-reponse-stop THRU fonction-reponse-stop-f
+           END-EVALUATE.
+       fonction-enchainement-f.
+           EXIT.
+       fonction-load-MF432fo.
+           MOVE 'consultation'     TO MF432o-title.
+           MOVE client-numb        TO MF432o-numb.
+           MOVE client-name        TO MF432o-name.
+           MOVE client-addrx       TO MF432o-addr.
+           MOVE client-phone       TO MF432o-phone.
+           MOVE client-datex       TO MF432o-date.
+           MOVE client-amount      TO MF432o-amount.
+           MOVE client-comment     TO MF432o-coment.
+           MOVE SPACES             TO MF432o-info1.
+           MOVE SPACES             TO MF432o-info2.
+           MOVE SPACES             TO MF432o-info.
+       fonction-load-MF432fo-f.
+           EXIT.
+      ****************************************************************
+      *    récupération données                                      *
+      *         acquision spa                                        *
+      ****************************************************************
+       fonction-gu-iopcb.
+      *           lecture spa  (w-spa)
+           CALL 'CBLTDLI' USING gu-fct iopcb w-spa.
+           DISPLAY 'im43brow-gu spa:' w-spa.
+      *
+           PERFORM fonction-ctrlcmde-gu THRU fonction-ctrlcmde-gu-f.
+       fonction-gu-iopcb-f.
+           EXIT.
+      ****************************************************************
+      *    récupération données                                      *
+      *         controle acquisition spa                             *
+      ****************************************************************
+       fonction-ctrlcmde-gu.
+           EVALUATE iopcb-rc
+      *       test return code iopcb ok
+           WHEN '  '
+              SET b-trt-consult TO TRUE
+      *       test return code iopcb message non traite
+           WHEN rc-mess-exist
+              SET b-trt-consult TO TRUE
+      *       test return code iopcb plus de message
+           WHEN rc-no-message
+              SET b-trt-goback TO TRUE
+           WHEN OTHER
+              MOVE 'erreur gu iopcb' TO mess-info
+              SET b-trt-abandon TO TRUE
+           END-EVALUATE.
+       fonction-ctrlcmde-gu-f.
+           EXIT.
+      ****************************************************************
+      *    récupération données                                      *
+      *         acquisition message                                  *
+      ****************************************************************
+       fonction-gn-iopcb.
+      *           lecture message in-MF432i
+           CALL 'CBLTDLI' USING gn-fct iopcb in-MF432i
+           DISPLAY 'im43brow-gn mes:' iopcb-rc ' * ' iopcb-modname
+                   ' * ' in-MF432i.
+       fonction-gn-iopcb-f.
+           EXIT.
+      ****************************************************************
+      *    récupération données                                      *
+      *         controle acquisition message                         *
+      ****************************************************************
+       fonction-ctrlcmde-gn.
+           EVALUATE iopcb-rc
+      *       test return code iopcb message lu
+           WHEN '  '
+              SET b-trt-reaffich TO TRUE
+      *       test return code iopcb plus de message
+           WHEN rc-no-segment
+              CONTINUE
+           WHEN OTHER
+              MOVE 'erreur gn iopcb' TO mess-info
+              SET b-trt-abandon TO TRUE
+           END-EVALUATE.
+       fonction-ctrlcmde-gn-f.
+           EXIT.
+      ****************************************************************
+      *    controle données message
+      ****************************************************************
+       fonction-ctrlmess.
+           PERFORM fonction-init-contexte THRU fonction-init-contexte-f.
+           IF NOT b-trt-exit THEN
+              PERFORM fonction-ctrlfich THRU fonction-ctrlfich-f
+           END-IF.
+       fonction-ctrlmess-f.
+           EXIT.
+      ****************************************************************
+      *    controle données message                                  *
+      *         fonction-initialisation contexte                     *
+      ****************************************************************
+       fonction-init-contexte.
+      *    definition action utilisateur
+           EVALUATE MF432i-pfkin
+           WHEN '  '
+              SET b-action-suite TO TRUE
+           WHEN '03'
+              SET b-action-abandon TO TRUE
+           WHEN OTHER
+              SET b-action-suite TO TRUE
+           END-EVALUATE.
+       fonction-init-contexte-f.
+           EXIT.
+      ****************************************************************
+      *    controle données message                                  *
+      *         acces table db2                                      *
+      ****************************************************************
+       fonction-ctrlfich.
+           DISPLAY 'im43brow-db2 :' cle-lec-client.
+           PERFORM fonction-lec-client THRU fonction-lec-client-f.
+           EVALUATE TRUE
+           WHEN b-client-trouve
+              MOVE stclient TO w-spa-stclient
+              CONTINUE
+           WHEN b-client-absent
+              SET b-trt-abandon TO TRUE
+              MOVE 'client absent' TO mess-info
+              MOVE SPACES TO w-spa-stclient
+           WHEN OTHER
+              STRING 'erreur ' cle-lec-client
+                     ' ' iopcb-rc
+                     delimited by size into mess-info
+              SET b-trt-abandon TO TRUE
+           END-EVALUATE.
+       fonction-ctrlfich-f.
+           EXIT.
+      *
+      *                     lecture fichier client
+      *
+       fonction-lec-client.
+           EXEC SQL
+             SELECT
+               numb,
+               stat,
+               name,
+               addrx,
+               phone,
+               datex,
+               amount,
+               comment
+             INTO
+              :client-numb,
+              :client-stat,
+              :client-name,
+              :client-addrx,
+              :client-phone,
+              :client-datex,
+              :client-amount,
+              :client-comment
+             FROM client
+             WHERE numb = :cle-lec-client
+           END-EXEC.
+           EVALUATE sqlcode
+           when 0
+             SET b-client-trouve TO TRUE
+           when +100
+             SET b-client-absent TO TRUE
+           when other
+             SET b-client-erreur TO TRUE
+           end-evaluate.
+       fonction-lec-client-f.
+           EXIT.
+      *                                                               5
+      * procedure reponse via iocpb
+      *
+       fonction-reponse-iopcb.
+           PERFORM fonction-isrt-io-spa THRU fonction-isrt-io-spa-f.
+           PERFORM fonction-isrt-io THRU fonction-isrt-io-f.
+       fonction-reponse-iopcb-f.
+           EXIT.
+
+      * procedure fonction-isrt-io-spa : spa insert for iopcb request ha
+
+       fonction-isrt-io-spa.
+      *          insertion  spa (w-spa)
+           CALL 'CBLTDLI' USING isrt-fct iopcb w-spa.
+      *       test return code iopcb invalide
+           IF iopcb-rc NOT = SPACES  THEN
+              STRING 'erreur isrt io spa '  iopcb-rc
+                     DELIMITED BY SIZE INTO mess-info
+              DISPLAY mess-info
+           END-IF.
+           DISPLAY 'im43brow-isrt io spa:' w-spa.
+       fonction-isrt-io-spa-f.
+           EXIT.
+
+      * procedure fonction-isrt-io : insert for iopcb request handler
+
+       fonction-isrt-io.
+           MOVE 'MF432FO' TO modname.
+           MOVE length of out-MF432o TO MF432o-ll.
+      *          insertion  message avec modname
+           CALL 'CBLTDLI' USING isrt-fct IOPCB out-MF432o modname.
+      *       test return code iopcb invalide
+           IF iopcb-rc NOT = SPACES  THEN
+              STRING 'erreur isrt io mess '   iopcb-rc
+                     '-' modname '-'
+                     DELIMITED BY SIZE INTO mess-info
+              DISPLAY mess-info
+           END-IF.
+           DISPLAY 'im43brow-isrt io mes:' out-MF432o.
+       fonction-isrt-io-f.
+           EXIT.
+      *
+      * procedure reponse via altpcb
+      *
+       fonction-reponse-stop.
+           PERFORM fonction-isrt-sto-spa THRU fonction-isrt-sto-spa-f.
+           PERFORM fonction-isrt-sto-mes THRU fonction-isrt-sto-mes-f.
+       fonction-reponse-stop-f.
+           EXIT.
+
+
+      * procedure fonction-isrt-sto-spa : spa insert for altpcb request
+
+       fonction-isrt-sto-spa.
+      *          modification destination alternate pcb
+      *                          avec tran-menu
+           CALL 'CBLTDLI' using chng-fct altpcb tran-menu
+      *       test return code alternate pcb invalide
+           IF altpcb-rc NOT = SPACES THEN
+              STRING 'erreur chng sto mess '  altpcb-rc
+                  DELIMITED BY SIZE INTO mess-info
+              DISPLAY 'im43brow-' mess-info
+            END-IF.
+           DISPLAY 'im43brow-chng sto:' tran-menu.
+      *
+           MOVE tran-menu       TO w-spa-tran.
+      *          insertion spa alternate pcb w-spa
+           CALL 'CBLTDLI' USING isrt-fct altpcb w-spa.
+      *       test return code alternate pcb invalide
+           IF altpcb-rc NOT = SPACES THEN
+              STRING 'erreur isrt sto spa ' altpcb-rc
+                  DELIMITED BY SIZE INTO mess-info
+              SET b-trt-erreur TO TRUE
+              DISPLAY 'im43brow-' mess-info
+           END-IF.
+           DISPLAY 'im43brow-isrt sto spa:' w-spa.
+       fonction-isrt-sto-spa-f.
+           EXIT.
+
+      * procedure fonction-isrt-sto-mes
+
+       fonction-isrt-sto-mes.
+           MOVE 'MF431O1' TO modname.
+           MOVE length of out-MF431o TO MF431o-ll.
+           MOVE 'REAFF  ' TO MF431O-CHOIX.
+           MOVE mess-info TO MF431o-info.
+      *          insertion message altpcb avec modification modname
+           CALL 'CBLTDLI' using isrt-fct altpcb modname.
+      *       test return code iopcb invalide
+           IF altpcb-rc NOT = SPACES THEN
+              STRING 'erreur isrt sto mess '  altpcb-rc
+                     '-' modname '-'
+                  DELIMITED BY SIZE INTO mess-info
+              DISPLAY 'im43brow:' mess-info
+           END-IF.
+           DISPLAY 'im43brow-isrt sto mess' out-MF431o.
+       fonction-isrt-sto-mes-f.
+           EXIT.
+

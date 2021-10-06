@@ -1,0 +1,34 @@
+      *           SELECTION DE TOUTES LES COLONNES D'UNE TABLE
+      *           LES VALEURS DES COLONNNES APPARAISSENT DANS
+      *           L'ORDRE DES COLONNES DU CREATE TABLE
+           EXEC SQL
+               SELECT * INTO :DCLCLIENT FROM CLIENT
+               WHERE NUMB=:CLNUMB
+           END-EXEC.
+      *           SELECTION DE CERTAINES COLONNES D'UNE TABLE
+           EXEC SQL
+             SELECT
+               NUMB,
+               STAT,
+               NAME,
+               ADDRX,
+               PHONE,
+               DATEX,
+             INTO
+              :CLIENT-NUMB,
+              :CLIENT-STAT,
+              :CLIENT-NAME,
+              :CLIENT-ADDRX,
+              :CLIENT-PHONE,
+              :CLIENT-DATEX
+               WHERE NUMB=:CLNUMB
+           END-EXEC.
+           EVALUATE SQLCODE
+           WHEN 100
+               SET B-CLIENT-ABSENT TO TRUE
+           WHEN 0
+               SET B-CLIENT-PRESENT TO TRUE
+           WHEN OTHER
+               DISPLAY 'ERREUR SQL'
+           END-EVALUATE.
+

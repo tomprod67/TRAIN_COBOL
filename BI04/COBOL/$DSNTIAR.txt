@@ -1,0 +1,46 @@
+      *WORKING-STORAGE SECTION.
+       01  dsntiar-ordre-sql pic X(8).
+       01  dsntiar-message.
+           02  dsntiar-len PIC S9(4)  COMP VALUE +1320.
+           02  dsntiar-text PIC X(132) OCCURS 10 TIMES
+                                           indexed BY dsntiar-index.
+       77  dsntiar-text-len    PIC S9(9)  COMP VALUE +132.
+      *  IMPORT SQLCA FOR dsntiarS CHECKING
+      *    EXEC SQL
+      *        INCLUDE SQLCA
+      *    END-EXEC.
+      *
+      *PROCEDURE DIVISION.
+      *
+      *
+      *
+      *    EXEC SQL
+      *        SELECT * FROM client
+      *        WHERE numb = :maj-numb
+      *    END-EXEC.
+      *    IF SQLCODE NOT = 0 THEN
+      *       AND SQLCODE NOT = +100 THEN
+      *       MOVE 'SELECT' dsntiar-ordre-sql
+      *       PERFORM liste-sqlca THRU liste-sqlca-f
+      *       STOP RUN
+      *    END-IF.
+      *
+      *
+      *           outil analyse SQLCA
+      *
+       liste-sqlca.
+           CALL 'DSNTIAR' USING SQLCA dsntiar-message dsntiar-text-len.
+           DISPLAY ' 1-'  dsntiar-ordre-sql '*' dsntiar-text(1).
+           DISPLAY ' 2-'  dsntiar-ordre-sql '*' dsntiar-text(2).
+           DISPLAY ' 3-'  dsntiar-ordre-sql '*' dsntiar-text(3).
+           DISPLAY ' 4-'  dsntiar-ordre-sql '*' dsntiar-text(4).
+           DISPLAY ' 5-'  dsntiar-ordre-sql '*' dsntiar-text(5).
+           DISPLAY ' 6-'  dsntiar-ordre-sql '*' dsntiar-text(6).
+           DISPLAY ' 7-'  dsntiar-ordre-sql '*' dsntiar-text(7).
+           DISPLAY ' 8-'  dsntiar-ordre-sql '*' dsntiar-text(8).
+           DISPLAY ' 9-'  dsntiar-ordre-sql '*' dsntiar-text(9).
+           DISPLAY '10-'  dsntiar-ordre-sql '*' dsntiar-text(10).
+       liste-sqlca-f.
+           EXIT.
+
+

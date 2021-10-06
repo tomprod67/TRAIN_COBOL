@@ -1,0 +1,26 @@
+      *       utilisation appel sous-programme CICS CI43TERR            00001004
+      *       AVEC COMMAREA comm-CI43terr                               00001104
+      *          definition WSS                                         00002005
+      *             01  comm-ci43terr.                                  00003004
+      *                 COPY cy43terr.                                  00003104
+       appel-CI43terr.                                                  00010004
+           MOVE 'CI43TERR'  TO comm-pgmid.                              00030004
+      *       code fonction EIB                                         00040000
+           MOVE EIBFN       TO comm-fn.                                 00050006
+      *       code reponse EIB                                          00060005
+           MOVE EIBRCODE    TO comm-rcode.                              00070006
+      *       code fonction EIB                                         00080000
+           MOVE EIBFN       TO comm-cmde.                               00090006
+      *       code retour interne EIB                                   00100000
+           MOVE EIBRESP     TO comm-resp.                               00110006
+      *       appel programme CI43TERR                                  00160004
+      *       LINK                                                      00160101
+      *       PROGRAM CI43TERR                                          00161004
+      *       COMMAREA comm-ci43terr                                    00170004
+      *       LENGTH utilisation instruction COBOL LENGTH OF            00180000
+           EXEC CICS                                                    00190000
+                LINK PROGRAM ('CI43TERR')                               00200006
+                COMMAREA(comm-ci43terr)                                 00201006
+                LENGTH(Length of comm-ci43terr)                         00202006
+           END-EXEC.                                                    00210000
+

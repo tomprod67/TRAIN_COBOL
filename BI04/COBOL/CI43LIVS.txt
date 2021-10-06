@@ -1,0 +1,504 @@
+      CBL CICS('COBOL2,NOCBLCARD')
+      *                                                               *
+      *****************************************************************
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. CI43LIVS.
+       ENVIRONMENT DIVISION.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01  commarea.
+           02  stats  PIC X(1).
+      *                                          BUILDS PREV BACK page
+           02  cle-deb PIC 9(6).
+      *                                          BUILDS NEXT FWD page
+           02  cle-fin PIC 9(6).
+      *
+       77  messages PIC X(39) VALUE ' '.
+      *
+       77  response PIC S9(8)  COMP.
+      *         touches fonction
+           COPY DFHAID.
+      *         attributs champs BMS
+           COPY DFHBMSCA.
+      *                                          client vsam
+       01  tr43fcli.
+           COPY cy43fcli.
+      *         message ecran menu
+           COPY cy43mnu.
+      *         message ecran liste
+           COPY cy43lis.
+      *
+       LINKAGE SECTION.
+        01 DFHCOMMAREA PIC X(13).
+      *
+       PROCEDURE DIVISION.
+      *         si commarea presente
+           IF EIBCALEN NOT = 0 THEN
+              MOVE DFHCOMMAREA TO commarea
+              GO TO prompt.
+      *     utilisation fonction RECEIVE ecran menu mapset MA43MNU
+      *          et code retour dans variable response
+           EXEC CICS
+                RECEIVE MAP('MENU')
+                MAPSET('MA43MNU')
+                RESP(response)
+           END-EXEC.
+      *
+      *    CHECK MAPFAIL
+      *
+           IF response = DFHRESP(MAPFAIL) THEN
+              MOVE 'PRESS CLEAR TO EXIT' TO messages
+              GO TO menu.
+      *
+      *    CHECK NORMAL
+      *
+           IF response NOT = DFHRESP(NORMAL) THEN
+              GO TO ERRORS.
+      *
+           IF keyl NOT = ZERO THEN
+              IF keyi IS NUMERIC THEN
+      *
+      *          VALID INPUT
+      *
+                 MOVE keyi TO cle-fin IN commarea
+                 MOVE keyi TO cle-deb IN commarea
+              ELSE
+      *
+      *          NOT NUMERIC
+      *
+                 MOVE
+                 'ACCOUNT number MUST BE NUMERIC'
+                 TO messages
+                 GO TO menu
+           ELSE
+      *
+              MOVE '000000' TO cle-fin IN commarea.
+      *
+      *     utilisation STARTBR ficher VSAM TR43FCLI
+      *         cle cle-fin
+      *         code retour dans variable response
+           EXEC CICS
+               STARTBR FILE('TR43FCLI')
+               RIDFLD(cle-fin)
+               RESP(response)
+           END-EXEC.
+      *
+      *        check NOTFND
+           IF response = DFHRESP(NOTFND) THEN
+              MOVE 'END OF FILE - PLEASE RESTART' TO messages
+              GO TO menu.
+      *        check NOT NORMAL
+           IF response NOT = DFHRESP(NORMAL) THEN
+              GO TO ERRORS.
+           IF cle-fin IN commarea NOT EQUAL '999999' THEN
+              GO TO page-forward.
+           MOVE 'H' TO stats IN commarea.
+           GO TO page-backward.
+      *
+      *    BUILD NEXT forward page
+      *
+       page-forward.
+      *
+      *         initialisation totalite message output LISTE
+           MOVE low-value to LISTEO.
+      *
+      *        check longueur commarea
+           IF EIBCALEN = 0 THEN GO TO next-line.
+      *     utilisation STARTBR ficher VSAM TR43FCLI
+      *         cle cle-fin
+      *         code retour dans variable response
+           EXEC CICS
+               STARTBR FILE('TR43FCLI')
+               RIDFLD(cle-fin)
+               RESP(response)
+           END-EXEC.
+      *
+      *        check NOTFND
+           IF response = DFHRESP(NOTFND) THEN
+              MOVE 'END OF FILE - PLEASE RESTART' TO messages
+              GO TO menu.
+      *        check NORMAL
+           IF response NOT = DFHRESP(NORMAL) THEN
+              GO TO ERRORS.
+           IF cle-fin IN commarea = '000000' THEN GO TO next-line.
+      *
+           PERFORM read-next.
+       next-line.
+      *
+           PERFORM read-next.
+      *
+      *        check ENDFILE
+           IF response = DFHRESP(ENDFILE) THEN
+               GO TO TOOHIGH.
+      *        check NOTFND
+           IF response = DFHRESP(NOTFND) THEN
+              MOVE 'END OF FILE - PLEASE RESTART' TO messages
+              GO TO menu.
+           IF response NOT = DFHRESP(NORMAL) THEN GO TO ERRORS.
+      *
+           MOVE client-numb TO number1o.
+           MOVE client-name TO name1o.
+           MOVE client-amount TO amount1o.
+      *
+           MOVE cle-fin IN commarea TO cle-deb IN commarea.
+      *
+           PERFORM read-next.
+      *
+      *    CHECK response
+      *
+      *        check ENDFILE
+           IF response = DFHRESP(ENDFILE)   THEN GO TO TOOHIGH.
+      *        check NOTFND
+           IF response = DFHRESP(NOTFND) THEN
+              MOVE 'END OF FILE - PLEASE RESTART' TO messages
+              GO TO menu.
+           IF response NOT = DFHRESP(NORMAL) THEN GO TO ERRORS.
+      *
+      *    MOVE FIELDS ---> MAP
+      *
+           MOVE client-numb TO number2o.
+           MOVE client-name TO name2o.
+           MOVE client-amount TO amount2o.
+      *
+      *    READ 3RD RECORD.
+      *
+           PERFORM read-next.
+      *
+      *    CHECKs
+      *
+      *        check ENDFILE
+           IF response = DFHRESP(ENDFILE)  THEN GO TO TOOHIGH.
+      *        check NOTFND
+           IF response = DFHRESP(NOTFND) THEN
+              MOVE 'END OF FILE - PLEASE RESTART' TO messages
+              GO TO menu.
+           IF response NOT = DFHRESP(NORMAL) THEN GO TO ERRORS.
+      *
+      *    MOVE FIELDS ---> MAP
+      *
+           MOVE client-numb TO number3o.
+           MOVE client-name TO name3o.
+           MOVE client-amount TO amount3o.
+      *
+      *    READ 4TH RECORD.
+      *
+           PERFORM read-next.
+      *
+      *    CHECK responseS
+      *
+      *        check ENDFILE
+           IF response = DFHRESP(ENDFILE) THEN GO TO TOOHIGH.
+      *        check NOTFND
+           IF response = DFHRESP(NOTFND) THEN
+              MOVE 'END OF FILE - PLEASE RESTART' TO messages
+              GO TO menu.
+      *        check NORMAL
+           IF response NOT = DFHRESP(NORMAL)  THEN GO TO ERRORS.
+      *
+      *    MOVE FIELDS ---> MAP
+      *
+           MOVE client-numb TO number4o.
+           MOVE client-name TO name4o.
+           MOVE client-amount TO amount4o.
+      *
+      *    THE SCREEN IS ERASED AND THE page IS DISPLAYED AT THE
+      *    TERMINAL.
+      *
+      *     utilisation fonction SEND ecran LISTE mapset MA43LIS
+      *           effacement ecran avant affichage
+      *           code retour dans variable response
+           EXEC CICS
+                 SEND MAP('liste')
+                 MAPSET('MA43LIS')
+                 ERASE
+                 RESP(response)
+           END-EXEC.
+      *
+      *     utilisation fonction RETURN avec transaction du bloc EIB
+      *           commarea COMMAREA et longueur 13
+           EXEC CICS
+              RETURN TRANSID(EIBTRNID)
+              COMMAREA(commarea)
+              LENGTH(13)
+           END-EXEC.
+      *
+      *
+       page-backward.
+      *
+      *         initialisation totalite message output LISTE
+           MOVE low-value to LISTEO.
+      *
+      *        check longueur commarea
+           IF EIBCALEN = 0 THEN GO TO TEST-stats.
+      *
+      *     utilisation STARTBR ficher VSAM TR43FCLI
+      *         cle cle-deb
+      *         code retour dans variable response
+           EXEC CICS
+               STARTBR FILE('TR43FCLI')
+               RIDFLD(cle-deb)
+               RESP(response)
+           END-EXEC.
+      *
+      *        check NOTFND
+           IF response = DFHRESP(NOTFND) THEN
+              MOVE 'END OF FILE - PLEASE RESTART' TO messages
+              GO TO menu.
+      *
+      *        check NORMAL
+           IF response NOT = DFHRESP(NORMAL) THEN GO TO ERRORS.
+       TEST-stats.
+      *
+           IF stats IN commarea = 'H' THEN GO TO PREV-LINE.
+      *
+           PERFORM read-prev.
+      *
+      *        check ENDFILE
+           IF response = DFHRESP(ENDFILE) THEN GO TO TOOLOW.
+      *        check NOTFND
+           IF response = DFHRESP(NOTFND) THEN
+              MOVE 'END OF FILE - PLEASE RESTART' TO messages
+              GO TO menu.
+      *        check NORMAL
+           IF response NOT = DFHRESP(NORMAL) then
+              GO TO ERRORS.
+       PREV-LINE.
+      *
+           MOVE ' ' TO stats IN commarea.
+           PERFORM read-prev.
+      *
+      *        check ENDFILE
+           IF response = DFHRESP(ENDFILE) THEN GO TO TOOLOW.
+      *        check NOTFND
+           IF response = DFHRESP(NOTFND) THEN
+              MOVE 'END OF FILE - PLEASE RESTART' TO messages
+              GO TO menu.
+      *        check NORMAL
+           IF response NOT = DFHRESP(NORMAL) THEN GO TO ERRORS.
+      *
+           MOVE client-numb TO number4o.
+           MOVE client-name TO name4o.
+           MOVE client-amount TO amount4o.
+           MOVE cle-deb IN commarea TO cle-fin IN commarea
+      *
+      *    READ 2ND RECORD.
+           PERFORM read-prev.
+      *
+      *        check ENDFILE
+           IF response = DFHRESP(ENDFILE) THEN GO TO TOOLOW.
+      *        check NOTFND
+           IF response = DFHRESP(NOTFND) THEN
+              MOVE 'END OF FILE - PLEASE RESTART' TO messages
+              GO TO menu.
+      *        check NORMAL
+           IF response NOT = DFHRESP(NORMAL) THEN GO TO ERRORS.
+      *
+           MOVE client-numb TO number3o.
+           MOVE client-name TO name3o.
+           MOVE client-amount TO amount3o.
+      *    READ 3RD RECORD.
+           PERFORM read-prev.
+      *
+      *        check ENDFILE
+           IF response = DFHRESP(ENDFILE) THEN GO TO TOOLOW.
+      *        check NOTFND
+           IF response = DFHRESP(NOTFND) THEN
+              MOVE 'END OF FILE - PLEASE RESTART' TO messages
+              GO TO menu.
+      *        check NORMAL
+           IF response NOT = DFHRESP(NORMAL) THEN GO TO ERRORS.
+      *
+      *    MOVE FIELDS ---> MAP
+      *
+           MOVE client-numb TO number2o.
+           MOVE client-name TO name2o.
+           MOVE client-amount TO amount2o.
+      *
+      *    READ 4TH RECORD.
+      *
+           PERFORM read-prev.
+      *
+      *    CHECK responseS
+      *
+      *        check ENDFILE
+           IF response = DFHRESP(ENDFILE) THEN GO TO TOOLOW.
+      *        check NOTFND
+           IF response = DFHRESP(NOTFND) THEN
+              MOVE 'END OF FILE - PLEASE RESTART' TO messages
+              GO TO menu.
+      *        check NORMAL
+           IF response NOT = DFHRESP(NORMAL) THEN GO TO ERRORS.
+      *
+           MOVE client-numb TO number1o.
+           MOVE client-name TO name1o.
+           MOVE client-amount TO amount1o.
+      *
+      *     utilisation fonction SEND ecran liste  mapset MA43LIS
+      *           effacement ecran avant affichage
+      *           code retour dans variable response
+           EXEC CICS
+                 SEND MAP('liste')
+                 MAPSET('MA43LIS')
+                 ERASE
+                 RESP(response)
+           END-EXEC.
+      *     utilisation fonction RETURN avec transaction du bloc EIB
+      *           commarea COMMAREA et longueur 13
+           EXEC CICS
+              RETURN TRANSID(EIBTRNID)
+              COMMAREA(commarea)
+              LENGTH(13)
+           END-EXEC.
+      *
+      *
+      *    ALL OTHER responseS ARE IGNORED.
+      *
+       prompt.
+      *     utilisation fonction RECEIVE ecran LISTE mapset MA43LIS
+      *          et code retour dans variable response
+           EXEC CICS
+                RECEIVE MAP('LISTE')
+                MAPSET('MA43LIS')
+                RESP(response)
+           END-EXEC.
+      *
+      *        check DFHCLEAR
+           IF EIBAID = DFHCLEAR THEN
+              MOVE 'PRESS CLEAR TO EXIT' TO messages
+              GO TO menu.
+      *
+      *        check DFHPF8 ou champ diri 'F' (forward)
+           IF EIBAID = DFHPF8 OR diri = 'F' THEN GO TO page-forward.
+      *        check DFHPF7 ou champ diri 'B' (below)
+           IF EIBAID = DFHPF7 OR diri = 'B' THEN GO TO page-backward.
+      *
+      *        check MAPFAIL
+           IF response = DFHRESP(MAPFAIL) THEN
+              MOVE 'PRESS CLEAR TO EXIT' TO messages
+              GO TO menu.
+      *        check NORMAL
+           IF response NOT = DFHRESP(NORMAL) THEN GO TO ERRORS.
+      *
+           EXEC CICS SEND MAP('LISTE') MAPSET('MA43LIS') END-EXEC.
+      *
+           EXEC CICS RETURN TRANSID(EIBTRNID) COMMAREA(commarea)
+                LENGTH(13) END-EXEC.
+      *
+      *
+       TOOHIGH.
+           MOVE 'H' TO stats IN commarea.
+           MOVE cle-fin IN commarea TO cle-deb IN commarea.
+           MOVE ' ' TO diro.
+           MOVE 'HI-END OF FILE' TO msg1o.
+      *
+      *       initialisation attribut champ MSG1 @ DFHBMASB
+           MOVE DFHBMASB TO MSG1A.
+      *     utilisation fonction SEND ecran LISTE mapset MA43LIS
+      *           effacement ecran avant affichage
+      *           code retour dans variable response
+           EXEC CICS
+                 SEND MAP('liste')
+                 MAPSET('MA43LIS')
+                 ERASE
+                 RESP(response)
+           END-EXEC.
+      *
+      *     utilisation fonction RETURN avec transaction du bloc EIB
+      *           commarea COMMAREA et longueur 13
+           EXEC CICS
+              RETURN TRANSID(EIBTRNID)
+              COMMAREA(commarea)
+              LENGTH(13)
+           END-EXEC.
+      *
+      *
+       TOOLOW.
+           MOVE '000000' TO cle-fin IN commarea.
+           MOVE '000000' TO cle-deb IN commarea.
+           MOVE ' ' TO diro.
+           MOVE 'LO-END OF FILE' TO msg2o.
+      *
+      *    BRT+PROT ATTR
+      *
+      *       initialisation attribut champ MSG2 @ DFHBMASB
+           MOVE DFHBMASB TO MSG2A.
+      *     utilisation fonction SEND ecran LISTE mapset MA43LIS
+      *           effacement ecran avant affichage
+      *           code retour dans variable response
+           EXEC CICS
+                 SEND MAP('liste')
+                 MAPSET('MA43LIS')
+                 ERASE
+                 RESP(response)
+           END-EXEC.
+      *
+      *     utilisation fonction RETURN avec transaction du bloc EIB
+      *           commarea COMMAREA et longueur 13
+           EXEC CICS
+              RETURN TRANSID(EIBTRNID)
+              COMMAREA(commarea)
+              LENGTH(13)
+           END-EXEC.
+      *
+      *
+       read-next.
+      *     utilisation READNEXT ficher VSAM TR43FCLI
+      *         INTO TR43FCLI
+      *         code retour dans variable response
+           EXEC CICS
+              READNEXT
+              FILE ('TR43FCLI')
+              INTO (tr43fcli)
+              RIDFLD(cle-fin)
+              RESP(response)
+           END-EXEC.
+      *
+      *
+       read-prev.
+      *     utilisation READPREV ficher VSAM TR43FCLI
+      *         INTO TR43FCLI
+      *         code retour dans variable response
+           EXEC CICS
+               READPREV
+               FILE ('TR43FCLI')
+               INTO (tr43fcli)
+               RIDFLD(cle-deb)
+               RESP(response)
+           END-EXEC.
+      *
+      *
+       ERRORS.
+      *         dump CICS
+      *            DUMPCODE ERRS
+           EXEC CICS
+               ABEND ABCODE('ERRS')
+           END-EXEC.
+      *    EXEC CICS
+      *        SET SYSDUMPCODE(ERRS) SYSDUMP
+      *    END-EXEC.
+           MOVE 'TRANSACTION TERMINATED' TO messages.
+      *
+      *
+       menu.
+      *
+           MOVE LOW-VALUE TO menuO.
+      *       initialisation attribut champ MSG  @ DFHBMASB
+           MOVE DFHBMASB to msga
+      *       initialisation champ MSG avec messages
+           MOVE messages to msgo.
+      *
+      *     utilisation fonction SEND ecran MENU  mapset MA43MNU
+      *           effacement ecran avant affichage
+           EXEC CICS
+                 SEND MAP('MENU')
+                 MAPSET('MA43MNU')
+                 ERASE
+           END-EXEC.
+      *
+      *
+      *     utilisation fonction RETURN retour CICS
+           EXEC CICS
+               RETURN
+           END-EXEC.
+           GOBACK.
+

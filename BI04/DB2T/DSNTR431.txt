@@ -1,0 +1,45 @@
+//TRAIN431  JOB NOTIFY=&SYSUID                                          00000001
+//*                                                                     00000002
+//**********************************************************************00000002
+//*      REINITIALISATION TABLE TABLESPACE                              00260000
+//**********************************************************************00000002
+//*                                                                     00260000
+//JOBLIB   DD  DSN=DB2B10.SDSNLOAD,DISP=SHR                             00250000
+//*                                                                     00260000
+//* STEP  1: DELETE DATA SETS                                           00270000
+//*                                                                     00260000
+//PH00S01 EXEC PGM=IKJEFT01,DYNAMNBR=20                                 00280000
+//SYSTSPRT DD  SYSOUT=*                                                 00290000
+//SYSPRINT DD  SYSOUT=*                                                 00300000
+//SYSUDUMP DD  SYSOUT=*                                                 00310000
+//SYSTSIN  DD *                                                         00320000
+ DELETE 'DB2T.DB2B10.SYSCOPY.BI04BASE.BI04TT43'                         00330000
+ DELETE 'TRAIN43.BI04.DB2T.LISTDEF'                                     00420000
+//*                                                                     01050000
+//*       2: PURGE RECOVERY TABLESPACE                                  01060000
+//*                                                                     01050000
+//PH00S02 EXEC DSNUPROC,PARM='DB2T,DSNTEX'                              01070000
+//DSNTRACE DD SYSOUT=*                                                  01080000
+//SYSUT1   DD UNIT=SYSDA,SPACE=(4000,(50,50),,,ROUND)                   01090000
+//SYSIN    DD  *                                                        01100000
+ MODIFY RECOVERY TABLESPACE BI04BASE.BI04TT43 DELETE AGE(*)             01110000
+//*                                                                     01180000
+//*       3: DROP TABLE TABLESPACE                                      01190000
+//*                                                                     01180000
+//PH00S03 EXEC PGM=IKJEFT01,DYNAMNBR=20                                 01200000
+//SYSTSPRT DD SYSOUT=*                                                  01210000
+//SYSPRINT DD SYSOUT=*                                                  01220000
+//SYSUDUMP DD SYSOUT=*                                                  01230000
+//SYSTSIN  DD  *                                                        01240000
+ DSN SYSTEM(DB2T)                                                       01250000
+  RUN PROGRAM(DSNTIAD) PLAN(DSNTIA11) -                                 01260000
+      LIB('SYS2.DB2B10.RUNLIB')                                         01270000
+ END                                                                    01280000
+//SYSIN    DD  *                                                        01290000
+ DROP TABLE TRAIN43.CLIENT;                                             01300000
+ COMMIT;                                                                01310000
+ DROP TABLESPACE BI04BASE.BI04TT43;                                     01300000
+ COMMIT;                                                                01310000
+//*                                                                     01490000
+//*                                                                     02410000
+

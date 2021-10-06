@@ -1,0 +1,47 @@
+         TITLE 'FILEA - MAP FOR FILE INQUIRY/UPDATE - COBOL'            06000000
+*********************************************************************** 06100000
+*                                                                     * 06200000
+* MODULE NAME = MA43CMB                                               * 06300004
+*                                                                     * 06400000
+*---------------------------------------------------------------------* 07400000
+*                                                                     * 07600000
+* CHANGE ACTIVITY :                                                   * 07800000
+*                                                                     * 08600000
+*********************************************************************** 08800000
+         AIF   ('&SYSPARM' EQ 'DSECT').SKIPSD                      @P2A 08820000
+         AIF   ('&SYSPARM' EQ 'ADSECT').SKIPSD                     @P2A 08850000
+         AIF   ('&SYSPARM' EQ 'TEMPLATE').SKIPSD                   @P3A 08860000
+MA43CDET CSECT                                                     @P2A 08880004
+MA43CDET AMODE 31                                                  @P2A 08910004
+MA43CDET RMODE ANY                                                 @P2A 08940004
+.SKIPSD  ANOP ,                                                    @P2A 08970000
+MA43DET  DFHMSD TYPE=&SYSPARM,MODE=INOUT,CTRL=(FREEKB,FRSET),          *09000004
+               LANG=COBOL,TIOAPFX=YES,EXTATT=MAPONLY                    12000000
+DETAIL   DFHMDI SIZE=(12,40)                                            15000000
+TITLE    DFHMDF POS=(1,15),LENGTH=12                                    18000000
+         DFHMDF POS=(3,1),LENGTH=8,INITIAL='NUMBER:',COLOR=BLUE         21000000
+NUMB     DFHMDF POS=(3,10),LENGTH=6                                     24000000
+         DFHMDF POS=(3,17),LENGTH=1                                     27000000
+         DFHMDF POS=(4,1),LENGTH=8,INITIAL='NAME:   ',COLOR=BLUE        30000000
+NAME     DFHMDF POS=(4,10),LENGTH=20,ATTRB=(UNPROT,IC)                  33000000
+         DFHMDF POS=(4,31),LENGTH=1                                     36000000
+         DFHMDF POS=(5,1),LENGTH=8,INITIAL='ADDRESS:',COLOR=BLUE        39000000
+ADDR     DFHMDF POS=(5,10),LENGTH=20,ATTRB=UNPROT                       42000000
+         DFHMDF POS=(5,31),LENGTH=1                                     45000000
+         DFHMDF POS=(6,1),LENGTH=8,INITIAL='PHONE:   ',COLOR=BLUE       48000000
+PHONE    DFHMDF POS=(6,10),LENGTH=8,ATTRB=UNPROT                        51000000
+         DFHMDF POS=(6,19),LENGTH=1                                     54000000
+         DFHMDF POS=(7,1),LENGTH=8,INITIAL='DATE:    ',COLOR=BLUE       57000000
+DATE     DFHMDF POS=(7,10),LENGTH=8,ATTRB=UNPROT                        60000000
+         DFHMDF POS=(7,19),LENGTH=1                                     63000000
+         DFHMDF POS=(8,1),LENGTH=8,INITIAL='AMOUNT:  ',COLOR=BLUE       66000000
+AMOUNT   DFHMDF POS=(8,10),LENGTH=8,ATTRB=NUM                           69000000
+         DFHMDF POS=(8,19),LENGTH=1                                     72000000
+         DFHMDF POS=(9,1),LENGTH=8,INITIAL='COMMENT:',COLOR=BLUE        75000000
+COMMENT  DFHMDF POS=(9,10),LENGTH=9,ATTRB=UNPROT                        78000000
+         DFHMDF POS=(9,20),LENGTH=1                                     81000000
+MSG1     DFHMDF POS=(11,1),LENGTH=39                                    84000000
+MSG3     DFHMDF POS=(12,1),LENGTH=39                                    88000000
+         DFHMSD TYPE=FINAL                                              92000000
+         END                                                            96000000
+

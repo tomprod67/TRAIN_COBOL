@@ -1,0 +1,8 @@
+      *       COMMAREA   PROGRAM CI43TERR
+           05 comm-pgmid          PIC X(8).
+           05 comm-code.
+              10 comm-fn          PIC X.
+              10 comm-rcode       PIC X.
+           05 comm-cmde           PIC XX.
+           05 comm-resp           PIC 99.
+

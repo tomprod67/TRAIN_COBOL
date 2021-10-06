@@ -1,0 +1,511 @@
+       IDENTIFICATION DIVISION.
+      *-----------------------
+       PROGRAM-ID.    TR43SP10.
+      *
+       ENVIRONMENT DIVISION.
+      *--------------------
+       CONFIGURATION SECTION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT param
+                  ASSIGN TO param.
+           SELECT log
+                  ASSIGN TO log.
+           SELECT tablunld
+                  ASSIGN TO tablunld.
+      *
+       DATA DIVISION.
+      *-------------
+      *
+       FILE SECTION.
+       FD  param
+           RECORDING MODE IS F.
+       01  PARM-FD      PIC X(80).
+      *
+       FD  log
+           RECORDING MODE IS F.
+       01  log-fd       PIC X(120).
+      *
+       FD  tablunld
+           RECORD CONTAINS 5 TO 32704 CHARACTERS
+           RECORDING MODE IS V.
+       01  tablunld-fd.
+           05 tablunld-fd-len PIC S9(8) COMP.
+           05 tablunld-fd-CHAR PIC X(1) OCCURS 1 TO 32700 TIMES
+              DEPENDING ON tablunld-fd-len.
+      *
+       WORKING-STORAGE SECTION.
+      *****************************************************
+      * STRUCTURE FOR INPUT                               *
+      *****************************************************
+       01  parm-wss.
+           05 tname         PIC X(72).
+           05 FILLER        PIC X(08).
+       01  buffer-stmt.
+           49 buffer-len    PIC S9(4) COMP VALUE +92.
+           49 buffer-char   PIC X(92).
+       01  ordre-sql.
+           05 FILLER        PIC X(14) VALUE 'SELECT * FROM '.
+           05 ordre-sql-tab PIC X(78).
+      *
+      *****************************************************
+      * REPORT header STRUCTURE                           *
+      *****************************************************
+       01  header.
+           05 FILLER PIC X(35)
+              VALUE ' DSNT490I SAMPLE COBOL DATA UNLOAD '.
+           05 FILLER PIC X(85) VALUE SPACES.
+       01  msg-sqlerr.
+           05 FILLER PIC X(31)
+              VALUE ' DSNT493I SQL ERROR, SQLCODE = '.
+           05 msg-minus       pic x(1).
+           05 msg-print-code  pic 9(8).
+           05 FILLER PIC X(81) VALUE SPACES.
+       01  msg-other-err.
+           05 FILLER PIC X(42)
+              VALUE ' THE TABLE COULD NOT BE UNLOADED. EXITING.'.
+           05 FILLER PIC X(78) VALUE SPACES.
+       01  msg-unloaded.
+           05 FILLER PIC X(28)
+              VALUE ' DSNT495I SUCCESSFUL UNLOAD '.
+           05 rows   pic 9(8).
+           02 FILLER PIC X(15) VALUE ' rows OF TABLE '.
+           02 tablenam pic x(72) value spaces.
+       01  msg-badtype.
+           05 FILLER PIC X(42)
+              VALUE ' DSNT496I UNRECOGNIZED DATA TYPE CODE OF  '.
+           05 typcod pic 9(8).
+           05 FILLER PIC X(71) VALUE SPACES.
+       01  msg-retcd.
+           05 FILLER PIC X(42)
+              VALUE ' DSNT497I RETURN CODE FROM MESSAGE ROUTINE'.
+           05 FILLER PIC X(9) VALUE 'DSNTIAR '.
+           05 retcode    pic 9(8).
+           05 FILLER PIC X(62) VALUE SPACES.
+       01  msg-nocol.
+           05 FILLER PIC X(120)
+              VALUE ' DSNT498I ERROR, NO VALID COLUMNS FOUND'.
+       01  msg-norow.
+           05 FILLER PIC X(120)
+              VALUE ' DSNT499I NO rows FOUND IN TABLE OR VIEW'.
+      *****************************************************
+      * WORKAREAS                                         *
+      *****************************************************
+       77  not-found         PIC S9(8) COMP VALUE  +100.
+      ****r************************************************
+      * VARIABLES dsntiar FOR dsntiar-message FORMATTING  *
+      *****************************************************
+       01  dsntiar-sql     PIC X(8).
+       01  dsntiar-message.
+           02  dsntiar-len PIC S9(4)  COMP VALUE +1320.
+           02  dsntiar-texte PIC X(132) OCCURS 10 TIMES
+                             INDEXED BY dsntiar-index.
+       77  dsntiar-texte-len PIC S9(9) COMP VALUE +132.
+      *****************************************************
+      *      SQLDA                                        *
+      *****************************************************
+       01 SQLDA.
+          05 SQLDAID PIC X(8) VALUE 'SQLDA'.
+          05 SQLDABC PIC S9(9) COMP-5 VALUE +33016.
+          05 SQLN    PIC S9(4) COMP-5 VALUE +750.
+          05 SQLD    PIC S9(4) COMP-5 VALUE 0.
+          05 SQLVAR  OCCURS 0 TO 750 TIMES DEPENDING ON SQLN.
+             10 SQLVAR1.
+                15 SQLTYPE PIC S9(4) COMP-5.
+                15 SQLLEN  PIC S9(4) COMP-5.
+                15 FILLER  REDEFINES SQLLEN.
+                   20 SQLPRECISION   PIC X.
+                   20 SQLSCALE       PIC X.
+                15 SQLDATA POINTER.
+                15 SQLIND  POINTER.
+                15 SQLNAME.
+                   49 SQLNAMEL PIC S9(4) COMP-5.
+                   49 SQLNAMEC PIC X(30).
+             10 SQLVAR2 REDEFINES SQLVAR1.
+                15 SQLVAR2-RESERVED-1 PIC S9(9) COMP-5.
+                15 SQLLONGLEN REDEFINES SQLVAR2-RESERVED-1
+                                      PIC S9(9) COMP-5.
+                15 SQLVAR2-RESERVED-2 PIC S9(9) COMP-5.
+                15 SQLDATALEN         POINTER.
+                15 SQLDATATYPE-NAME.
+                   20 SQLDATATYPE-NAMEL PIC S9(4) COMP-5.
+                   20 SQLDATATYPE-NAMEC PIC X(30).
+      *****************************************************
+      *        valeurs types de colonnes                  *
+      *****************************************************
+       77  varctype            PIC S9(4)  COMP VALUE +448.
+       77  chartype            PIC S9(4)  COMP VALUE +452.
+       77  varltype            PIC S9(4)  COMP VALUE +456.
+       77  vargtype            PIC S9(4)  COMP VALUE +464.
+       77  gtype               PIC S9(4)  COMP VALUE +468.
+       77  lvargtype           PIC S9(4)  COMP VALUE +472.
+       77  floatype            PIC S9(4)  COMP VALUE +480.
+       77  dectype             PIC S9(4)  COMP VALUE +484.
+       77  inttype             PIC S9(4)  COMP VALUE +496.
+       77  hwtype              PIC S9(4)  COMP VALUE +500.
+       77  datetyp             PIC S9(4)  COMP VALUE +384.
+       77  timetyp             PIC S9(4)  COMP VALUE +388.
+       77  timestmp            PIC S9(4)  COMP VALUE +392.
+      *****************************************************
+      *        variables pour chaque colonnne             *
+      *****************************************************
+       01  recptr POINTER.
+       01  recnum REDEFINES recptr PIC S9(9) COMP.
+       01  irecptr POINTER.
+       01  irecnum REDEFINES irecptr PIC S9(9) COMP.
+       01  i                   PIC S9(4) COMP.
+       01  j                   PIC S9(4) COMP.
+       01  dummy               PIC S9(4) COMP.
+       01  mytype              PIC S9(4) COMP.
+       01  column-ind          PIC S9(4) COMP.
+       01  column-len          PIC S9(4) COMP.
+       01  column-prec         PIC S9(4) COMP.
+       01  column-scale        PIC S9(4) COMP.
+       01  indcount            PIC S9(4) COMP.
+       01  rowcount            PIC S9(4) COMP.
+       01  err-found           PIC X(1).
+       01  w-pointers.
+           05 w-pointer POINTER OCCURS 750 TIMES.
+      *****************************************************
+      *   DECLARE CURSOR AND STATEMENT FOR DYNAMIC SQL
+      *****************************************************
+      *       nom du curseur
+           EXEC SQL DECLARE
+                DT CURSOR FOR SEL
+           END-EXEC.
+      *         nom ordre SQL
+           EXEC SQL DECLARE
+                SEL STATEMENT
+           END-EXEC.
+      *
+      *****************************************************
+      * SQL INCLUDE FOR SQLCA                             *
+      *****************************************************
+           EXEC SQL
+                INCLUDE SQLCA
+           END-EXEC.
+      *
+       77  one                 PIC S9(4)  COMP VALUE +1.
+       77  two                 PIC S9(4)  COMP VALUE +2.
+       77  four                PIC S9(4)  COMP VALUE +4.
+       77  qmark               PIC X(1)        VALUE '?'.
+      *
+       LINKAGE SECTION.
+      *      RESERVE NOMBRE POSTES SQLDA MAXI
+       01  sqlda-postes.
+           05 sqlda-poste PIC S9(4) COMP OCCURS 750 TIMES.
+      *      RESERVE LIGNE TABLE MAXI (LONGUEUR + DONNEES)
+       01  record-ligne.
+           05 record-ligne-len PIC S9(8) COMP.
+           05 record-ligne-char PIC X(1) OCCURS 1 TO 32700 TIMES
+                        DEPENDING ON record-ligne-len.
+       01  LINKAREA-qmark.
+           05 ind-null PIC X(1).
+      /
+       PROCEDURE DIVISION USING sqlda-postes record-ligne.
+      *
+      *****************************************************
+      * SQL RETURN CODE HANDLING                          *
+      *****************************************************
+           EXEC SQL WHENEVER
+                SQLERROR GOTO dberror
+           END-EXEC.
+           EXEC SQL WHENEVER
+                SQLWARNING GOTO dberror
+           END-EXEC.
+           EXEC SQL WHENEVER
+                NOT FOUND CONTINUE
+           END-EXEC.
+      *
+      *****************************************************
+      * MAIN PROGRAM ROUTINE                              *
+      *****************************************************
+           MOVE 'N' TO err-found.
+      *                                         **INITIALIZE
+      *                                          ** ERROR FLAG
+           SET irecptr TO ADDRESS OF record-ligne-char(1).
+      *                                          **OPEN FILES
+           OPEN INPUT  param
+                OUTPUT log tablunld.
+      *
+      *                                          **WRITE header
+           WRITE log-fd FROM header.
+      *                                         lecture nom table
+           READ param  RECORD INTO parm-wss.
+      *                                          **MAIN ROUTINE
+           PERFORM process-input THRU ecr-compte-rendu.
+      *
+       prog-end.
+      *                                           **CLOSE FILES
+           CLOSE param
+                 log
+                 tablunld.
+           GOBACK.
+      */
+      ***************************************************************
+      *                                                             *
+      *    PERFORMED SECTION:                                       *
+      *    PROCESSING FOR THE TABLE OR VIEW JUST READ               *
+      *                                                             *
+      ***************************************************************
+       process-input.
+      D    DISPLAY 'process-input'.
+      *        initialisation ordre SQL  avec sqlda
+           MOVE tname TO ordre-sql-tab.
+           MOVE ordre-sql TO buffer-char.
+           MOVE +750 TO SQLN.
+           EXEC SQL PREPARE
+                SEL INTO :SQLDA FROM :buffer-stmt
+           END-EXEC.
+           PERFORM liste-sqlca
+              THRU liste-sqlca-f.
+      ***************************************************************
+      *                                                             *
+      *    SET UP ADDRESSES IN THE SQLDA FOR DATA.                  *
+      *                                                             *
+      ***************************************************************
+           IF SQLD = ZERO THEN
+              WRITE log-fd FROM msg-nocol
+              MOVE 'Y' TO err-found
+              GO TO ecr-compte-rendu.
+           MOVE ZERO TO rowcount.
+           MOVE ZERO TO record-ligne-len.
+           SET recptr TO irecptr.
+           MOVE one TO i.
+           PERFORM coladdr UNTIL i > SQLD.
+      ****************************************************************
+      *                                                              *
+      *    SET LENGTH OF OUTPUT RECORD.                              *
+      *    EXEC  SQL OPEN DT END-EXEC.                               *
+      *    DO WHILE SQLCODE IS 0.                                    *
+      *       EXEC SQL FETCH DT USING DESCRIPTOR :SQLDA END-EXEC.    *
+      *       ADD IN MARKERS TO DENOTE NULLS.                        *
+      *       WRITE THE DATA TO tablunld.                            *
+      *       INCREMENT DATA RECORD COUNTER.                         *
+      *    END.                                                      *
+      *                                                              *
+      ****************************************************************
+      *                                         **OPEN CURSOR
+           EXEC SQL OPEN
+                DT
+           END-EXEC.
+           PERFORM init-record.
+      *                                         **READ FIRST ROW
+           EXEC SQL FETCH
+                DT USING DESCRIPTOR :SQLDA
+           END-EXEC.
+           PERFORM liste-sqlca
+              THRU liste-sqlca-f.
+      *                                          **NO rows FOUND
+      *                                          **PRINT ERROR MESSAGE
+           IF SQLCODE = not-found
+              WRITE log-fd FROM msg-norow
+              MOVE 'Y' TO err-found
+      *                                          **WRITE ROW AND
+      *                                          **CONTINUE UNTIL
+      *                                          **NO MORE rows
+           ELSE
+              PERFORM WRITE-AND-FETCH
+                UNTIL SQLCODE IS NOT = ZERO
+           END-IF.
+      *                                          **erreur
+      *                                          **cursor vide
+           EXEC SQL WHENEVER
+                NOT FOUND  GOTO CLOSEDT
+           END-EXEC.
+      *
+       CLOSEDT.
+      *                                          **close cursor
+           EXEC SQL CLOSE
+                DT
+           END-EXEC.
+      *
+      ****************************************************************
+      *                                                              *
+      *    INDICATE THE RESULTS OF THE UNLOAD OPERATION.             *
+      *                                                              *
+      ****************************************************************
+       ecr-compte-rendu.
+      D    DISPLAY 'ecr-compte-rendu'.
+           IF err-found = 'N' THEN
+              MOVE tname TO TABLENAM
+              MOVE rowcount TO rows
+              WRITE log-fd FROM msg-unloaded
+           ELSE
+              WRITE log-fd FROM msg-other-err
+              MOVE +0012 TO RETURN-CODE
+              GO TO prog-end.
+      *
+       WRITE-AND-FETCH.
+      D    DISPLAY 'WRITE-AND-FETCH'.
+      *        ADD IN MARKERS TO DENOTE NULLS.
+           MOVE one TO indcount.
+           PERFORM nullchk UNTIL indcount = SQLD.
+           MOVE record-ligne-len TO tablunld-fd-len.
+           DISPLAY 'tablunld-fd:' record-ligne(1:record-ligne-len).
+           WRITE tablunld-fd FROM record-ligne.
+           ADD one TO rowcount.
+           PERFORM init-record.
+      *                                         **READ nieme ROW
+           EXEC SQL FETCH
+                DT USING DESCRIPTOR :SQLDA
+           END-EXEC.
+           PERFORM liste-sqlca
+              THRU liste-sqlca-f.
+      *
+       nullchk.
+      D    DISPLAY 'nullchk'.
+      *                                         **colonne null
+           IF sqlda-poste(indcount) < 0 THEN
+              SET ADDRESS OF LINKAREA-qmark TO w-pointer(indcount)
+              MOVE qmark TO ind-null.
+           ADD one TO indcount.
+      *****************************************************
+      *    BLANK OUT RECORD TEXT FIRST                    *
+      *****************************************************
+       init-record.
+      D    DISPLAY 'init-record'.
+           MOVE one TO j.
+           PERFORM init-record-char UNTIL j > record-ligne-len.
+       init-record-char.
+      D    DISPLAY 'init-record-char' j '*' record-ligne-len.
+           MOVE ' ' TO record-ligne-char(J).
+           ADD  one TO j.
+      ****************************************************************
+      *
+      *        DETERMINE THE LENGTH OF THIS COLUMN (column-len)
+      *        THIS DEPENDS UPON THE DATA TYPE.  MOST DATA TYPES HAVE
+      *        THE LENGTH SET, BUT VARCHAR, GRAPHIC, VARGRAPHIC, AND
+      *        DECIMAL DATA NEED TO HAVE THE BYTES CALCULATED.
+      *        THE NULL ATTRIBUTE MUST BE SEPARATED TO SIMPLIFY MATTERS.
+      *
+      ****************************************************************
+       coladdr.
+      D    DISPLAY 'coladdr' SQLVAR(i).
+           SET SQLDATA(i) TO recptr.
+           MOVE SQLLEN(i) TO column-len.
+      *        column-ind IS 0 FOR NO NULLS AND 1 FOR NULLS
+           DIVIDE SQLTYPE(i) BY two GIVING dummy REMAINDER column-ind.
+      *        mytype IS JUST THE SQLTYPE WITHOUT THE NULL BIT
+           MOVE SQLTYPE(i) TO mytype.
+           SUBTRACT column-ind FROM mytype.
+      *        SET THE COLUMN LENGTH  DEPENDENT UPON DATA TYPE
+           EVALUATE mytype
+           WHEN chartype  CONTINUE
+           WHEN datetyp   CONTINUE
+           WHEN timetyp   CONTINUE
+           WHEN timestmp  CONTINUE
+           WHEN floatype  CONTINUE
+           WHEN varctype
+                ADD two TO column-len
+           WHEN varltype
+                ADD two TO column-len
+           WHEN gtype
+                MULTIPLY column-len BY two GIVING column-len
+           WHEN vargtype
+                PERFORM calc-varg-len
+           WHEN lvargtype
+                PERFORM calc-varg-len
+           WHEN hwtype
+                 MOVE two TO column-len
+           WHEN inttype
+                MOVE four TO column-len
+           WHEN dectype
+                PERFORM calc-decimal-len
+           WHEN OTHER
+                PERFORM error-type
+           END-EVALUATE.
+           ADD column-len TO recnum.
+           ADD column-len TO record-ligne-len.
+      *                                                              *
+      *    IF THIS COLUMN CAN BE NULL, AN INDicaTOR VARIABLE IS         *
+      *    NEEDED.  WE ALSO RESERVE SPACE IN THE OUTPUT RECORD TO    *
+      *    NOTE THAT THE VALUE IS NULL.                              *
+      *                                                              *
+           MOVE ZERO TO sqlda-poste(i).
+           IF column-ind = one THEN
+              SET SQLIND(i) TO ADDRESS OF sqlda-poste(i)
+              SET w-pointer(i) TO recptr
+              ADD one TO recnum
+              ADD one TO record-ligne-len.
+      *
+           ADD one TO i.
+      ****************************************************************
+      *        PERFORMED PARAGRAPH TO CALCULATE COLUMN LENGTH
+      *        FOR A DECIMAL DATA TYPE COLUMN
+      ****************************************************************
+       calc-decimal-len.
+      D    DISPLAY 'calc-decimal-len'.
+           DIVIDE column-len BY 256 GIVING column-prec
+                    REMAINDER column-scale.
+           MOVE column-prec TO column-len.
+           ADD one TO column-len.
+           DIVIDE column-len BY two GIVING column-len.
+      ****************************************************************
+      *        PERFORMED PARAGRAPH TO CALCULATE COLUMN LENGTH
+      *        FOR A VARGRAPHIC DATA TYPE COLUMN
+      ****************************************************************
+       calc-varg-len.
+      D    DISPLAY 'calc-varg-len'.
+           MULTIPLY column-len BY two GIVING column-len.
+           ADD two TO column-len.
+      ****************************************************************
+      *        PERFORMED PARAGRAPH TO NOTE AN UNRECOGNIZED
+      *        DATA TYPE COLUMN
+      ****************************************************************
+       error-type.
+      D    DISPLAY 'error-type'.
+      *
+      *        ERROR MESSAGE FOR UNRECOGNIZED DATA TYPE
+      *
+           MOVE  SQLTYPE(i) TO typcod
+           MOVE 'Y' TO err-found
+           WRITE log-fd FROM msg-badtype
+           GO TO ecr-compte-rendu.
+      *
+      *****************************************************
+      * SQL ERROR OCCURRED - GET MESSAGE                  *
+      *****************************************************
+       dberror.
+      D    DISPLAY 'dberror'.
+      *                                          **SQL ERROR
+           MOVE 'Y' TO err-found.
+           MOVE SQLCODE TO msg-print-code.
+           IF SQLCODE < 0 THEN MOVE '-' TO msg-MINUS.
+           WRITE log-fd FROM msg-sqlerr.
+           IF RETURN-CODE = ZERO
+              PERFORM ecr-log-dsntiar VARYING dsntiar-index
+                 FROM 1 BY 1 UNTIL dsntiar-index GREATER THAN 8
+           ELSE
+      *                                       **ERROR FOUND IN dsntiar
+      *                                       **PRINT ERROR MESSAGE
+              MOVE RETURN-CODE TO retcode
+              WRITE log-fd FROM msg-retcd.
+           GO TO ecr-compte-rendu.
+      *
+      *****************************************************
+      *    PRINT MESSAGE TEXT                             *
+      *****************************************************
+       ecr-log-dsntiar.
+      D    DISPLAY 'ecr-log-dsntiar'.
+           WRITE log-fd FROM dsntiar-texte (dsntiar-index).
+      *****************************************************************
+      *
+      *           outil analyse SQLCA
+      *
+       liste-sqlca.
+           CALL 'DSNTIAR' USING SQLCA dsntiar-message dsntiar-texte-len.
+           DISPLAY ' 1-'   dsntiar-texte(1).
+           DISPLAY ' 2-'   dsntiar-texte(2).
+           DISPLAY ' 3-'   dsntiar-texte(3).
+           DISPLAY ' 4-'   dsntiar-texte(4).
+           DISPLAY ' 5-'   dsntiar-texte(5).
+           DISPLAY ' 6-'   dsntiar-texte(6).
+           DISPLAY ' 7-'   dsntiar-texte(7).
+           DISPLAY ' 8-'   dsntiar-texte(8).
+           DISPLAY ' 9-'   dsntiar-texte(9).
+           DISPLAY '10-'   dsntiar-texte(10).
+       liste-sqlca-f.
+           EXIT.
+
+

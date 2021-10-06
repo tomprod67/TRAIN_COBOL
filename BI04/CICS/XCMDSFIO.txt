@@ -1,0 +1,7 @@
+/*       REXX        */
+ADDRESS TSO
+       "ISPEXEC CONTROL TSOGUI ON"
+      "SDSF /F CICSTR01,CEMT SET FI(BI04TR43) OPEN"
+      "ISPEXEC CONTROL TSOGUI OFF"
+                 EXIT
+

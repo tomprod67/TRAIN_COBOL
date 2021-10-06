@@ -1,0 +1,67 @@
+000100 IDENTIFICATION DIVISION.                                         00010000
+000200 PROGRAM-ID. TR43CB07.                                            00020005
+000300 ENVIRONMENT DIVISION.                                            00030000
+000400 DATA DIVISION.                                                   00040000
+000410 WORKING-STORAGE SECTION.                                         00041000
+000420 01 w-traitement pic x.                                           00042000
+000430     88 b-traitement-ok value '1'.                                00043000
+000440     88 b-traitement-fin value '0'.                               00044000
+000450     88 b-traitement-erreur value '6'.                            00045000
+000460 01 w-liste pic x.                                                00046000
+000470     88 b-liste-vide value '0'.                                   00047000
+000480     88 b-liste-ok   value '9'.                                   00048000
+000490 77 cle-debut pic X(8) value '21212120'.                          00049000
+000491 77 cle-fin pic X(8) value '34512120'.                            00049100
+000492 77 cle-lue pic X(8).                                             00049205
+000493     EXEC SQL                                                     00049305
+000494        INCLUDE SQLCA                                             00049405
+000495     END-EXEC.                                                    00049505
+000497     exec sql                                                     00049700
+000498        include CY43DCLI                                          00049805
+000499     end-exec.                                                    00049900
+000510 PROCEDURE DIVISION.                                              00051000
+000600 PRINCIPAL SECTION.                                               00060000
+000700 PGM.                                                             00070000
+000800     perform pgm-init.                                            00080000
+000900     perform pgm-trt until not b-traitement-ok.                   00090003
+001000     perform pgm-fin.                                             00100000
+001100     Stop run.                                                    00110000
+001200 pgm-init.                                                        00120000
+001210     exec sql                                                     00121000
+001220        declare c-cursor cursor for                               00122002
+001230        select * from CLIENT                                      00123000
+001231        where PHONE >= :cle-debut                                 00123104
+001240        order by PHONE                                            00124000
+001300     end-exec.                                                    00130000
+001310     set b-liste-vide to TRUE.                                    00131000
+001320     set b-traitement-ok to TRUE.                                 00132000
+001330     exec sql                                                     00133000
+001340        open c-cursor                                             00134000
+001350     end-exec.                                                    00135000
+001360     if sqlcode is not = 0 then set b-traitement-erreur to TRUE   00136000
+001370     end-if.                                                      00137000
+001400 pgm-trt.                                                         00140000
+001500     exec sql                                                     00150000
+001510        fetch c-cursor into :stclient                             00151002
+001520     end-exec.                                                    00152000
+001530     evaluate sqlcode                                             00153000
+001531     when 0                                                       00153101
+001532        move client-phone to cle-lue                              00153200
+001533        if cle-lue > cle-fin then                                 00153302
+001534           set b-traitement-fin to TRUE                           00153400
+001535        else                                                      00153500
+001536           set b-liste-ok to TRUE                                 00153600
+001537           display stclient                                       00153702
+001538        end-if                                                    00153800
+001539     when +100                                                    00153901
+001540        set b-traitement-fin to TRUE                              00154000
+001541     when other                                                   00154100
+001542        display 'error'                                           00154200
+001543        set b-traitement-erreur to TRUE                           00154300
+001550     end-evaluate.                                                00155000
+001600 pgm-fin.                                                         00160000
+001700     if b-liste-vide display 'liste vide'.                        00170000
+001800     exec sql                                                     00180000
+001900        close c-cursor                                            00190000
+002000     end-exec.                                                    00200000
+

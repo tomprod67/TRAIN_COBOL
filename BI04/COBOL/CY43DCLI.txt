@@ -1,0 +1,60 @@
+      ******************************************************************
+      * DCLGEN TABLE(CLIENT)                                           *
+      *        LIBRARY(TRAIN43.BI04.COBOL(CY43DCLI))                   *
+      *        LANGUAGE(COBOL)                                         *
+      *        NAMES(CLIENT-)                                          *
+      *        STRUCTURE(STCLIENT)                                     *
+      *        QUOTE                                                   *
+      *        LABEL(YES)                                              *
+      *        DBCSDELIM(NO)                                           *
+      *        COLSUFFIX(YES)                                          *
+      *        INDVAR(YES)                                             *
+      * ... IS THE DCLGEN COMMAND THAT MADE THE FOLLOWING STATEMENTS   *
+      ******************************************************************
+           EXEC SQL DECLARE CLIENT TABLE
+           ( NUMB                           CHAR(6) NOT NULL,
+             STAT                           CHAR(1),
+             NAME                           CHAR(20),
+             ADDRX                          CHAR(20),
+             PHONE                          CHAR(8),
+             DATEX                          CHAR(8),
+             AMOUNT                         CHAR(8),
+             COMMENT                        CHAR(9)
+           ) END-EXEC.
+      ******************************************************************
+      * COBOL DECLARATION FOR TABLE TRAIN43.CLIENT                     *
+      ******************************************************************
+       01  STCLIENT.
+      *    *************************************************************
+      *                       NUMB
+           10 CLIENT-NUMB          PIC X(6).
+      *    *************************************************************
+      *                       STAT
+           10 CLIENT-STAT          PIC X(1).
+      *    *************************************************************
+      *                       NAME
+           10 CLIENT-NAME          PIC X(20).
+      *    *************************************************************
+      *                       ADDRX
+           10 CLIENT-ADDRX         PIC X(20).
+      *    *************************************************************
+      *                       PHONE
+           10 CLIENT-PHONE         PIC X(8).
+      *    *************************************************************
+      *                       DATEX
+           10 CLIENT-DATEX         PIC X(8).
+      *    *************************************************************
+      *                       AMOUNT
+           10 CLIENT-AMOUNT        PIC X(8).
+      *    *************************************************************
+      *                       COMMENT
+           10 CLIENT-COMMENT       PIC X(9).
+      ******************************************************************
+      * INDICATOR VARIABLE STRUCTURE                                   *
+      ******************************************************************
+       01  ICLIENT.
+           10 INDSTRUC           PIC S9(4) USAGE COMP OCCURS 8 TIMES.
+      ******************************************************************
+      * THE NUMBER OF COLUMNS DESCRIBED BY THIS DECLARATION IS 8       *
+      ******************************************************************
+

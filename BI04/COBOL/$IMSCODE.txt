@@ -1,0 +1,16 @@
+* SPA area SPA
+* MID area message INPUT
+* MOD area message OUTPUT
+* MODNAME nom du message OUTPUT dQfini dans le format "ecran".
+* trannew nom de la nouvelle transaction
+CALL 'DLITCBL' USING pcb1 pcb2 ...  (pcb1 pcb2 définis en linkage section)
+CALL 'CBLTDLI' USING GU-FONC IOPCB SPA.
+CALL 'CBLTDLI' USING ISRT-FONC IOPCB SPA.
+CALL 'CBLTDLI' USING GN-FONC IOPCB mid.
+CALL 'CBLTDLI' USING GN-FONC IOPCB mid.
+CALL 'CBLTDLI' USING ISRT-FONC ioPCB mod.
+CALL 'CBLTDLI' USING ISRT-FONC IOPCB mod modname.
+CALL 'CBLTDLI' USING ISRT-FONC altpCB mod.
+CALL 'CBLTDLI' USING ISRT-FONC altPCB mod modname.
+CALL 'CBLTDLI' USING CHGT-FONC altPCB trannew.
+

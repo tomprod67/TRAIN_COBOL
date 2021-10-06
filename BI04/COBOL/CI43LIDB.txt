@@ -1,0 +1,715 @@
+       IDENTIFICATION DIVISION.                                         00010000
+       PROGRAM-ID. CI43LIDB.                                            00020000
+       ENVIRONMENT DIVISION.                                            00030000
+       CONFIGURATION SECTION.                                           00040000
+      *---------------------*                                           00041000
+       SOURCE-COMPUTER. IBM-370.                                        00042000
+       OBJECT-COMPUTER. IBM-370.                                        00043000
+      *--------------------*                                            00044000
+       INPUT-OUTPUT SECTION.                                            00045000
+      *--------------------*                                            00046000
+       FILE-CONTROL.                                                    00047000
+      *-------------*                                                   00048000
+       DATA DIVISION.                                                   00048100
+      *-------------*                                                   00048200
+       WORKING-STORAGE SECTION.                                         00048300
+      *                                                                 00048400
+      *------VARIABLES DIVERSES                                         00048500
+      *                                                                 00048600
+       01  ERREUR-MESSAGE       PIC X(80).                              00048700
+       77  CLE-LEC-CLIENT PIC X(6).                                     00048800
+       77  CODE-CICS                   PIC 9(9) COMP.                   00048900
+       77  CODE-CICS-EDIT              PIC 9(9).                        00049000
+       01  SQLCODE-EDIT     PIC +9(4).                                  00049100
+       77  LG-W-DFHCOMMAREA            PIC S9(4) COMP.                  00049200
+       01  W-ARRET-FETCH       PIC X.                                   00050000
+           88 NON-ARRET-LECTURE  VALUE '0'.                             00060000
+           88 ARRET-LECTURE  VALUE '1'.                                 00060100
+       01  W-ERREUR             PIC X.                                  00060200
+           88 ERREUR-SANS    VALUE '0'.                                 00060300
+           88 ERREUR-AVEC-MESSAGE VALUE '1'.                            00061000
+           88 ERREUR-SANS-MESSAGE VALUE '2'.                            00062000
+           88 ERREUR-CICS VALUE '3'.                                    00062100
+           88 ERREUR-DB2  VALUE '4'.                                    00062200
+      *                 GESTION DES RETURNS                             00062300
+       01  W-RETURN             PIC X.                                  00063100
+           88 RETURN-CICS              VALUE '1'.                       00063200
+           88 RETURN-LISTE-AVEC-COMM   VALUE '2'.                       00063300
+           88 RETURN-CESF              VALUE '3'.                       00063400
+           88 RETURN-Z043              VALUE '4'.                       00063500
+      *                 GESTION PAGE AVANT PAGE PRECEDENTE              00063600
+       01  W-RECHERCHE          PIC X.                                  00064100
+           88 W-RECHERCHE-NONFIN VALUE '0'.                             00064200
+           88 W-RECHERCHE-FIN VALUE '1' '2'.                            00064300
+           88 W-RECHERCHE-OK VALUE '2'.                                 00064400
+           88 W-RECHERCHE-KO VALUE '1'.                                 00064500
+      *                                                                 00065200
+      *------TABLE DB2 CLIENT                                           00065300
+      *                                                                 00065400
+       01  W-LISTE              PIC X.                                  00065700
+           88 LISTE-DEB         VALUE '0'.                              00065800
+           88 LISTE-OK          VALUE '1'.                              00065900
+           88 CLIENT-ABSENT     VALUE '2'.                              00066000
+           88 LISTE-FIN         VALUE '3'.                              00066100
+           88 LISTE-ERR         VALUE '4'.                              00066200
+           88 CURSOR-OK         VALUE '5'.                              00066300
+           88 CURSOR-FIN        VALUE '6'.                              00066400
+           88 CURSOR-ERR        VALUE '7'.                              00066500
+       01  W-DEFILEMENT         PIC X.                                  00066600
+           EXEC SQL                                                     00066700
+             INCLUDE CY43DCLI                                           00066800
+           END-EXEC.                                                    00066900
+           EXEC SQL                                                     00067000
+             INCLUDE SQLCA                                              00067100
+           END-EXEC.                                                    00068000
+      *                                                                 00068600
+      *------SQL PAGE SUIVANTE                                          00068700
+      *                                                                 00068800
+           EXEC SQL DECLARE CLIENT-CURSOR-SUITE CURSOR FOR              00068900
+             SELECT                                                     00069000
+               NUMB,                                                    00069100
+               STAT,                                                    00069200
+               NAME,                                                    00069300
+               ADDRX,                                                   00069400
+               PHONE,                                                   00069500
+               DATEX,                                                   00069600
+               AMOUNT,                                                  00069700
+               COMMENT                                                  00069800
+             FROM CLIENT                                                00069900
+             WHERE NUMB >= :CLE-LEC-CLIENT                              00070000
+             FETCH FIRST 5 ROWS ONLY                                    00070100
+           END-EXEC.                                                    00070200
+      *                                                                 00070300
+      *------VARIABLES UTILISATEUR ECRAN                                00070400
+      *                                                                 00070500
+           COPY CY43MNU.                                                00070600
+           COPY CY43LIS.                                                00070700
+      *                                                                 00070800
+      *------VARIABLES COMMAREA                                         00070900
+      *                                                                 00071000
+       01  W-CLIENT             PIC X.                                  00071100
+           88 W-CLIENT-NONTROUVE VALUE '0'.                             00071200
+           88 W-CLIENT-TROUVE   VALUE '1'.                              00071300
+       01  I-MAX      PIC S9(4) COMP.                                   00071400
+       01  I-MAX-REPOS PIC S9(4) COMP.                                  00071500
+       01  I-TAB-AFF PIC S9(4) COMP.                                    00071600
+       01  ROW-NUMBER PIC S9(4) COMP.                                   00071700
+       01  CLE-REPOS-FIN   PIC X(6).                                    00071800
+       01  TABLE-CLE-NEW.                                               00071900
+           02 CLE-CLIENT        PIC X(6) OCCURS 5.                      00072000
+       01  TABLE-CLE-OLD.                                               00072100
+           05 TABLE-CLE-REPOS.                                          00072200
+              10 CLE-CLIENT-REPOS  PIC X(6) OCCURS 5.                   00072300
+           05 W-DFHCOMMAREA.                                            00072400
+              10 CLE-CLIENT-COURS PIC X(6) OCCURS 5.                    00072500
+       01  FILLER REDEFINES TABLE-CLE-OLD.                              00072600
+           05 CLE-CLIENT-AFF PIC X(06) OCCURS 10.                       00072700
+      *                                                                 00072800
+      *------CONSTANTES CICS                                            00072900
+      *                                                                 00073000
+           COPY DFHBMSCA.                                               00073100
+           COPY DFHAID.                                                 00074000
+      *                                                                 00080000
+      *------FICHIER LOG                                                00090000
+      *                                                                 00100000
+       LINKAGE SECTION.                                                 00130000
+       01  DFHCOMMAREA PIC X(30).                                       00140000
+       PROCEDURE DIVISION.                                              00160000
+           PERFORM TRAIT-INIT                                           00170000
+              THRU TRAIT-INIT-F.                                        00180000
+           IF EIBCALEN = 0                                              00190000
+              PERFORM LISTE-CLIENT-MENU                                 00240000
+                 THRU LISTE-CLIENT-MENU-F                               00250000
+           ELSE                                                         00251000
+              PERFORM LISTE-CLIENT-LISTE                                00252000
+                 THRU LISTE-CLIENT-LISTE-F                              00253000
+           END-IF.                                                      00254000
+       GESTION-RETURN.                                                  00254100
+           EVALUATE TRUE                                                00255000
+           WHEN RETURN-CESF                                             00256000
+              PERFORM TRT-RETURN-CESF                                   00257000
+                 THRU TRT-RETURN-CESF-F                                 00258000
+           WHEN RETURN-Z043                                             00259000
+              PERFORM TRT-RETURN-Z043                                   00259100
+                 THRU TRT-RETURN-Z043-F                                 00259200
+           WHEN RETURN-LISTE-AVEC-COMM                                  00259300
+              PERFORM TRT-RETURN-COMM                                   00259400
+                 THRU TRT-RETURN-COMM-F                                 00259500
+           WHEN RETURN-CICS                                             00259600
+              PERFORM TRT-RETURN-CICS                                   00259700
+                 THRU TRT-RETURN-CICS-F                                 00259800
+           END-EVALUATE                                                 00259900
+           GOBACK.                                                      00260000
+        ERRORS.                                                         00270000
+      *                                                                 00280000
+      *        TRAITEMENT HANDLE CONDITION                              00290000
+      *                                                                 00300000
+           PERFORM REJET-MENU                                           00310000
+              THRU REJET-MENU-F                                         00311000
+           IF ERREUR-CICS THEN                                          00311100
+              STRING 'ERREUR CICS: ' DELIMITED BY SIZE                  00311200
+                     CODE-CICS-EDIT DELIMITED BY SIZE                   00311300
+                     INTO ERREUR-MESSAGE.                               00311400
+           IF ERREUR-DB2 THEN                                           00311500
+              MOVE SQLCODE TO SQLCODE-EDIT                              00311600
+              STRING 'ERREUR DB2: ' DELIMITED BY SIZE                   00311700
+                     SQLCODE-EDIT DELIMITED BY SIZE                     00311800
+                     INTO ERREUR-MESSAGE.                               00311900
+           GO TO GESTION-RETURN.                                        00312000
+      *                                                                 00312100
+      *        AFFICHAGE AVEC LE CLE DU MESSAGE MENU                    00312200
+      *                                                                 00312300
+        LISTE-CLIENT-MENU.                                              00312400
+           PERFORM RECEPT-MENU                                          00312500
+              THRU RECEPT-MENU-F.                                       00312600
+           EVALUATE TRUE                                                00312700
+           WHEN EIBAID = DFHPF3                                         00312800
+              PERFORM ARRET THRU ARRET-F                                00312900
+           WHEN OTHER                                                   00313000
+              MOVE SPACES TO W-DFHCOMMAREA                              00313100
+              MOVE KEYI TO CLE-CLIENT-COURS(1)                          00313200
+              PERFORM AFFICHAGE-LISTE-SUITE                             00313300
+                 THRU AFFICHAGE-LISTE-SUITE-F                           00313400
+           END-EVALUATE.                                                00313500
+        LISTE-CLIENT-MENU-F.                                            00313600
+           EXIT.                                                        00313700
+      *                                                                 00313800
+      *        AFFICHAGE PAGE PRECEDENTE / PAGE SUIVANTE                00313900
+      *                                                                 00314000
+        LISTE-CLIENT-LISTE.                                             00314100
+           PERFORM RECEPT-LISTE                                         00314200
+              THRU RECEPT-LISTE-F.                                      00314300
+           EVALUATE TRUE                                                00314400
+           WHEN EIBAID = DFHPF3                                         00314500
+              PERFORM AFFICHAGE-MENU                                    00314600
+                 THRU AFFICHAGE-MENU-F                                  00314700
+           WHEN EIBAID = DFHPF7 OR DIRI = 'P'                           00314800
+              PERFORM AFFICHAGE-LISTE-PREC                              00315100
+                 THRU AFFICHAGE-LISTE-PREC-F                            00315200
+           WHEN EIBAID = DFHPF8 OR DIRI = 'S'                           00315300
+              PERFORM AFFICHAGE-LISTE-SUITE                             00315600
+                 THRU AFFICHAGE-LISTE-SUITE-F                           00315700
+           WHEN OTHER                                                   00315800
+              PERFORM REAFFICHAGE-LISTE                                 00315900
+                 THRU REAFFICHAGE-LISTE-F                               00316000
+           END-EVALUATE.                                                00316100
+       LISTE-CLIENT-LISTE-F.                                            00316200
+           EXIT.                                                        00317000
+       ARRET.                                                           00318600
+           SET RETURN-CESF TO TRUE                                      00318700
+           GOBACK.                                                      00319100
+       ARRET-F.                                                         00319200
+           EXIT.                                                        00319300
+      *                                                                 00319400
+      *        AFFICHAGE PAGE SUIVANTE                                  00319500
+      *                                                                 00319600
+       AFFICHAGE-LISTE-SUITE.                                           00319700
+           MOVE SPACES TO ERREUR-MESSAGE.                               00319800
+           IF CLE-CLIENT-COURS(5) NOT = SPACES                          00319900
+              MOVE CLE-CLIENT-COURS(5) TO CLE-REPOS-FIN                 00320000
+           ELSE IF CLE-CLIENT-COURS(4) NOT = SPACES                     00320200
+              MOVE CLE-CLIENT-COURS(4) TO CLE-REPOS-FIN                 00320300
+           ELSE IF CLE-CLIENT-COURS(3) NOT = SPACES                     00320500
+              MOVE CLE-CLIENT-COURS(3) TO CLE-REPOS-FIN                 00320600
+           ELSE IF CLE-CLIENT-COURS(2) NOT = SPACES                     00320800
+              MOVE CLE-CLIENT-COURS(2) TO CLE-REPOS-FIN                 00320900
+           ELSE                                                         00321000
+              MOVE CLE-CLIENT-COURS(1) TO CLE-REPOS-FIN.                00321100
+           MOVE CLE-REPOS-FIN TO CLE-LEC-CLIENT.                        00321200
+           PERFORM OPEN-CURSOR-SUITE                                    00321300
+              THRU OPEN-CURSOR-SUITE-F.                                 00321400
+           EVALUATE TRUE                                                00321500
+           WHEN LISTE-OK                                                00321600
+              PERFORM TRT-CURSOR-NLIGNES                                00321700
+                 THRU TRT-CURSOR-NLIGNES-F                              00321800
+              SET RETURN-LISTE-AVEC-COMM TO TRUE                        00321900
+           WHEN LISTE-FIN                                               00322000
+              MOVE 'PLUS DE CLIENT' TO ERREUR-MESSAGE                   00322100
+              MOVE CLE-CLIENT-COURS (1) TO CLE-LEC-CLIENT               00322200
+              PERFORM TRT-CURSOR-NLIGNES                                00322300
+                 THRU TRT-CURSOR-NLIGNES-F                              00322400
+              SET RETURN-LISTE-AVEC-COMM TO TRUE                        00322500
+           WHEN OTHER                                                   00322600
+              MOVE CODE-CICS TO CODE-CICS-EDIT                          00322700
+              STRING 'ERREUR CICS: ' DELIMITED BY SIZE                  00322800
+                     CODE-CICS-EDIT DELIMITED BY SIZE                   00322900
+                     INTO ERREUR-MESSAGE                                00323000
+              PERFORM ENVOI-MENU                                        00323100
+                 THRU ENVOI-MENU-F                                      00323200
+              SET RETURN-CICS TO TRUE                                   00323300
+           END-EVALUATE.                                                00323400
+           PERFORM CLOSE-CURSOR-SUITE                                   00323500
+              THRU CLOSE-CURSOR-SUITE-F.                                00323600
+       AFFICHAGE-LISTE-SUITE-F.                                         00323800
+           EXIT.                                                        00323900
+       TRT-CURSOR-NLIGNES.                                              00324000
+           PERFORM LEC-CLIENT-FETCH-SUITE                               00324100
+              THRU LEC-CLIENT-FETCH-SUITE-F.                            00324200
+           EVALUATE TRUE                                                00324900
+           WHEN CURSOR-OK                                               00325800
+              PERFORM REPONSE-LISTE                                     00325900
+                 THRU REPONSE-LISTE-F                                   00326000
+              SET RETURN-LISTE-AVEC-COMM TO TRUE                        00326100
+           WHEN CURSOR-FIN                                              00326200
+              MOVE 'PLUS DE CLIENT' TO ERREUR-MESSAGE                   00326300
+              MOVE CLE-CLIENT-COURS(1) TO CLE-LEC-CLIENT                00326400
+              PERFORM REPONSE-LISTE                                     00326600
+                 THRU REPONSE-LISTE-F                                   00326700
+              SET RETURN-LISTE-AVEC-COMM TO TRUE                        00326800
+           WHEN NOT CURSOR-OK                                           00326900
+              MOVE SQLCODE TO CODE-CICS-EDIT                            00327000
+              STRING 'ERREUR DB2 ' DELIMITED BY SIZE                    00327100
+                     CODE-CICS-EDIT DELIMITED BY SIZE                   00327200
+                     INTO ERREUR-MESSAGE                                00327300
+              PERFORM ENVOI-MENU                                        00327400
+                 THRU ENVOI-MENU-F                                      00327500
+              SET RETURN-CICS TO TRUE                                   00327600
+           END-EVALUATE.                                                00327700
+       TRT-CURSOR-NLIGNES-F.                                            00327800
+           EXIT.                                                        00327900
+      *                                                                 00328000
+      *        AFFICHAGE PAGE PRECEDENTE                                00328100
+      *                                                                 00328200
+       AFFICHAGE-LISTE-PREC.                                            00328300
+           MOVE SPACES TO ERREUR-MESSAGE.                               00328400
+           PERFORM REPOS-CLIENT THRU REPOS-CLIENT-F.                    00328500
+           MOVE CLE-CLIENT-REPOS(1) TO CLE-LEC-CLIENT.                  00328600
+           PERFORM OPEN-CURSOR-SUITE                                    00329200
+              THRU OPEN-CURSOR-SUITE-F.                                 00329300
+           EVALUATE TRUE                                                00329400
+           WHEN LISTE-OK                                                00329500
+              PERFORM REPONSE-LISTE                                     00329600
+                 THRU REPONSE-LISTE-F                                   00329700
+              SET RETURN-LISTE-AVEC-COMM TO TRUE                        00329900
+           WHEN LISTE-FIN                                               00330000
+              MOVE 'PLUS DE CLIENT' TO ERREUR-MESSAGE                   00330100
+              PERFORM REPONSE-LISTE                                     00330200
+                 THRU REPONSE-LISTE-F                                   00330300
+              SET RETURN-LISTE-AVEC-COMM TO TRUE                        00330500
+           WHEN OTHER                                                   00330600
+              MOVE CODE-CICS TO CODE-CICS-EDIT                          00330700
+              STRING 'ERREUR CICS: ' DELIMITED BY SIZE                  00330800
+                     CODE-CICS-EDIT DELIMITED BY SIZE                   00330900
+                     INTO ERREUR-MESSAGE                                00331000
+              PERFORM ENVOI-MENU                                        00331100
+                 THRU ENVOI-MENU-F                                      00331200
+              SET RETURN-CICS TO TRUE                                   00331300
+           END-EVALUATE.                                                00331400
+           PERFORM CLOSE-CURSOR-SUITE                                   00331800
+              THRU CLOSE-CURSOR-SUITE-F.                                00331900
+       AFFICHAGE-LISTE-PREC-F.                                          00332000
+           EXIT.                                                        00332100
+       AFFICHAGE-MENU.                                                  00332200
+           MOVE SPACES TO MSGO.                                         00332300
+           PERFORM ENVOI-MENU                                           00332400
+              THRU ENVOI-MENU-F.                                        00332500
+           SET RETURN-CICS TO TRUE.                                     00332600
+       AFFICHAGE-MENU-F.                                                00332700
+           EXIT.                                                        00332800
+       REAFFICHAGE-LISTE.                                               00332900
+           PERFORM RECEPT-LISTE                                         00333000
+              THRU RECEPT-LISTE-F.                                      00333100
+           PERFORM ENVOI-LISTE-DATA                                     00333200
+              THRU ENVOI-LISTE-DATA-F.                                  00333300
+      *                                                                 00333400
+           SET RETURN-LISTE-AVEC-COMM TO TRUE.                          00333500
+       REAFFICHAGE-LISTE-F.                                             00333600
+           EXIT.                                                        00333700
+       REJET-MENU.                                                      00333800
+           SET RETURN-Z043 TO TRUE.                                     00333900
+       REJET-MENU-F.                                                    00334000
+           EXIT.                                                        00334100
+      *                                                                 00334200
+      *                                                                 00334300
+      *        CONTROLES INITIAUX                                       00334400
+      *                                                                 00334500
+       TRAIT-INIT.                                                      00334600
+      *                                                                 00334700
+      *    THE "ERROR" EXIT IS SET UP. THIS IS TO TRAP ANY UNEXPECTED   00334800
+      *    ERRORS, ALL OTHER ERROR CONDITIONS ARE TESTED FOR EXPLICITLY 00334900
+      *    BY THE PROGRAM, USING THE "RESP" OPTION ON COMMANDS.         00335000
+      *                                                                 00335100
+           EXEC CICS HANDLE CONDITION                                   00335200
+                ERROR(ERRORS)                                           00336000
+           END-EXEC.                                                    00340000
+      *                                                                 00341000
+           IF EIBCALEN = 0 THEN                                         00350000
+              MOVE SPACES TO W-DFHCOMMAREA                              00360000
+           ELSE                                                         00370000
+              MOVE DFHCOMMAREA TO W-DFHCOMMAREA                         00380000
+           END-IF.                                                      00390000
+       TRAIT-INIT-F.                                                    00421300
+           EXIT.                                                        00421400
+      *                                                                 00422200
+       REPONSE-LISTE.                                                   00422300
+           MOVE SPACES TO TABLE-CLE-NEW.                                00422400
+           MOVE ZERO TO ROW-NUMBER.                                     00422500
+      *                                                                 00423700
+      *       IF PROGRAM IS INVOKED BY " ZA$1", A TITLE AND COMMAND     00423800
+      *       MESSAGE ARE MOVED TO THE MAP AREA.                        00423900
+      *                                                                 00424000
+           MOVE LOW-VALUES TO LISTEO.                                   00424100
+      *                                                                 00428000
+      *       ALL FIELD ATTRIBUTES ARE PROTECTED.                       00429500
+      *                                                                 00429600
+           SET NON-ARRET-LECTURE TO TRUE.                               00429700
+           PERFORM LEC-CLIENT-FETCH-SUITE                               00429800
+              THRU LEC-CLIENT-FETCH-SUITE-F.                            00429900
+           ADD 1 TO ROW-NUMBER.                                         00431000
+           MOVE CLIENT-NUMB     TO CLE-CLIENT(ROW-NUMBER).              00432000
+      *                                                                 00440000
+           MOVE CLIENT-NUMB     TO NUMBER1O.                            00444000
+           MOVE CLIENT-NAME     TO NAME1O.                              00445000
+           MOVE CLIENT-AMOUNT   TO AMOUNT1O.                            00445100
+           SET NON-ARRET-LECTURE TO TRUE.                               00445200
+           PERFORM LEC-CLIENT-FETCH-SUITE                               00445300
+              THRU LEC-CLIENT-FETCH-SUITE-F.                            00445400
+      *                                                                 00445800
+           IF CURSOR-OK                                                 00446500
+              AND NOT ARRET-LECTURE THEN                                00446600
+              ADD 1 TO ROW-NUMBER                                       00446700
+              MOVE CLIENT-NUMB TO CLE-CLIENT(ROW-NUMBER)                00446800
+              MOVE CLIENT-NUMB TO NUMBER2O                              00446900
+              MOVE CLIENT-NAME TO NAME2O                                00447000
+              MOVE CLIENT-AMOUNT TO AMOUNT2O                            00447100
+      *                                                                 00447200
+      *                                                                 00447400
+              PERFORM LEC-CLIENT-FETCH-SUITE                            00447500
+                 THRU LEC-CLIENT-FETCH-SUITE-F                          00447600
+           ELSE                                                         00447700
+              SET ARRET-LECTURE TO TRUE                                 00447800
+           END-IF.                                                      00447900
+      *                                                                 00448000
+           IF CURSOR-OK                                                 00448100
+              AND NOT ARRET-LECTURE THEN                                00448200
+              ADD 1 TO ROW-NUMBER                                       00448300
+              MOVE CLIENT-NUMB TO CLE-CLIENT(ROW-NUMBER)                00448400
+              MOVE CLIENT-NUMB TO NUMBER3O                              00448500
+              MOVE CLIENT-NAME TO NAME3O                                00448600
+              MOVE CLIENT-AMOUNT TO AMOUNT3O                            00448700
+      *                                                                 00449000
+              PERFORM LEC-CLIENT-FETCH-SUITE                            00449100
+                 THRU LEC-CLIENT-FETCH-SUITE-F                          00449200
+           ELSE                                                         00449300
+              SET ARRET-LECTURE TO TRUE                                 00449400
+           END-IF.                                                      00449500
+      *                                                                 00449600
+           IF CURSOR-OK                                                 00449700
+              AND NOT ARRET-LECTURE THEN                                00449800
+              ADD 1 TO ROW-NUMBER                                       00449900
+              MOVE CLIENT-NUMB TO CLE-CLIENT(ROW-NUMBER)                00450000
+              MOVE CLIENT-NUMB TO NUMBER4O                              00450100
+              MOVE CLIENT-NAME TO NAME4O                                00450200
+              MOVE CLIENT-AMOUNT TO AMOUNT4O                            00450300
+              PERFORM LEC-CLIENT-FETCH-SUITE                            00450400
+                 THRU LEC-CLIENT-FETCH-SUITE-F                          00450500
+           ELSE                                                         00450600
+              SET ARRET-LECTURE TO TRUE                                 00450700
+           END-IF.                                                      00450800
+           IF CURSOR-OK                                                 00450900
+              AND NOT ARRET-LECTURE THEN                                00451000
+              ADD 1 TO ROW-NUMBER                                       00451100
+              MOVE CLIENT-NUMB TO CLE-CLIENT(ROW-NUMBER)                00451200
+              MOVE CLIENT-NUMB TO CLE-REPOS-FIN                         00451300
+           ELSE                                                         00451500
+              MOVE CLE-CLIENT(ROW-NUMBER) TO CLE-REPOS-FIN              00451600
+           END-IF.                                                      00451700
+           MOVE ROW-NUMBER TO I-MAX.                                    00451800
+      *                                                                 00451900
+      *                                                                 00452000
+           IF ERREUR-MESSAGE = SPACES                                   00452100
+              MOVE 'PRESS PF8 TO CONTINUE' TO MSG2O                     00452200
+           ELSE                                                         00452300
+              MOVE ERREUR-MESSAGE TO MSG2O                              00452400
+           END-IF.                                                      00452500
+           PERFORM ENVOI-LISTE THRU ENVOI-LISTE-F.                      00452600
+      *                                                                 00452700
+           MOVE 30 TO LG-W-DFHCOMMAREA.                                 00452800
+           MOVE TABLE-CLE-NEW TO W-DFHCOMMAREA.                         00452900
+                                                                        00453000
+       REPONSE-LISTE-F.                                                 00453100
+           EXIT.                                                        00453200
+       REPOS-CLIENT.                                                    00453300
+           MOVE SPACES TO TABLE-CLE-REPOS.                              00453400
+           MOVE SPACES TO CLE-REPOS-FIN.                                00453500
+           SET W-CLIENT-NONTROUVE TO TRUE.                              00453600
+           SET W-RECHERCHE-NONFIN TO TRUE.                              00453700
+           PERFORM RECHERCHE-CLIENT                                     00453800
+              THRU RECHERCHE-CLIENT-F                                   00453900
+              UNTIL W-RECHERCHE-FIN.                                    00454000
+       REPOS-CLIENT-F.                                                  00454600
+           EXIT.                                                        00454700
+       RECHERCHE-CLIENT.                                                00454800
+           SET LISTE-DEB TO TRUE.                                       00454900
+           MOVE CLE-REPOS-FIN TO CLE-LEC-CLIENT.                        00455000
+           PERFORM OPEN-CURSOR-SUITE                                    00455100
+              THRU OPEN-CURSOR-SUITE-F.                                 00455200
+           IF LISTE-OK THEN                                             00455300
+              MOVE ZERO TO ROW-NUMBER                                   00455400
+              PERFORM DEFIL-CURSOR-SUITE                                00455500
+                 THRU DEFIL-CURSOR-SUITE-F                              00455600
+                 UNTIL CURSOR-FIN                                       00455700
+           ELSE                                                         00455800
+              SET W-RECHERCHE-FIN TO TRUE                               00455900
+           END-IF.                                                      00456000
+           PERFORM CLOSE-CURSOR-SUITE                                   00456100
+              THRU CLOSE-CURSOR-SUITE-F.                                00456200
+           IF W-CLIENT-TROUVE                                           00456300
+              SET W-RECHERCHE-FIN TO TRUE                               00456400
+           END-IF.                                                      00456500
+       RECHERCHE-CLIENT-F.                                              00456600
+           EXIT.                                                        00456700
+       DEFIL-CURSOR-SUITE.                                              00456800
+           PERFORM LEC-CLIENT-FETCH-SUITE                               00456900
+              THRU LEC-CLIENT-FETCH-SUITE-F.                            00457000
+           IF CURSOR-OK                                                 00457100
+              ADD 1 TO ROW-NUMBER                                       00457200
+              MOVE CLIENT-NUMB TO CLE-CLIENT-REPOS(ROW-NUMBER)          00457300
+              IF CLIENT-NUMB = CLE-CLIENT-COURS(1)                      00457400
+                 OR CLIENT-NUMB > CLE-CLIENT-COURS(1)                   00457500
+                 SET W-CLIENT-TROUVE TO TRUE                            00457600
+                 MOVE ROW-NUMBER TO I-MAX-REPOS                         00457700
+              END-IF                                                    00457900
+              MOVE CLIENT-NUMB  TO CLE-REPOS-FIN                        00458000
+           END-IF.                                                      00458100
+       DEFIL-CURSOR-SUITE-F.                                            00458200
+           EXIT.                                                        00459000
+      *                                                                 00671800
+      *                ACCES DB2 PAGE SUIVANTE                          00671900
+      *                                                                 00672000
+       OPEN-CURSOR-SUITE.                                               00672100
+           EXEC SQL                                                     00672200
+              OPEN CLIENT-CURSOR-SUITE                                  00672300
+           END-EXEC.                                                    00672400
+           IF SQLCODE = +100                                            00672500
+              SET LISTE-FIN TO TRUE                                     00672600
+           ELSE                                                         00672700
+              IF SQLCODE = 0                                            00672800
+                 SET LISTE-OK TO TRUE                                   00672900
+              ELSE                                                      00673400
+                 SET ERREUR-DB2 TO TRUE                                 00673500
+                 SET LISTE-ERR TO TRUE                                  00673600
+              END-IF                                                    00673700
+           END-IF.                                                      00673800
+       OPEN-CURSOR-SUITE-F.                                             00673900
+           EXIT.                                                        00674000
+       LEC-CLIENT-FETCH-SUITE.                                          00674100
+           EXEC SQL                                                     00674200
+              FETCH CLIENT-CURSOR-SUITE INTO :STCLIENT                  00674300
+           END-EXEC.                                                    00674400
+           IF SQLCODE = +100                                            00674500
+              SET CURSOR-FIN TO TRUE                                    00674600
+           ELSE                                                         00674700
+              IF SQLCODE = 0                                            00674800
+                 SET CURSOR-OK TO TRUE                                  00674900
+              ELSE                                                      00675000
+                 SET ERREUR-DB2 TO TRUE                                 00675100
+                 SET CURSOR-ERR TO TRUE                                 00675200
+              END-IF                                                    00675300
+           END-IF.                                                      00675400
+       LEC-CLIENT-FETCH-SUITE-F.                                        00675600
+           EXIT.                                                        00675700
+       CLOSE-CURSOR-SUITE.                                              00675800
+           EXEC SQL                                                     00675900
+              CLOSE CLIENT-CURSOR-SUITE                                 00676000
+           END-EXEC.                                                    00676100
+           IF SQLCODE NOT = 0 THEN                                      00676200
+              SET ERREUR-DB2 TO TRUE                                    00676300
+              SET LISTE-ERR TO TRUE                                     00676400
+           END-IF.                                                      00676700
+       CLOSE-CURSOR-SUITE-F.                                            00676800
+           EXIT.                                                        00676900
+      *                                                                 00685500
+      *                     RECEPTION MAP MENU                          00686000
+      *                                                                 00690000
+       RECEPT-MENU.                                                     00700000
+      *                                                                 00710000
+      *    THE MENU MAP "CY43MNU" IS RECEIVED. THE ACCOUNT NUMBER, IF   00720000
+      *    ENTERED, IS MAPPED INTO "KEYI" IN THE DSECT FOR "CY43MNU".   00730000
+      *    NOTE THAT THE CODE-CICS RESPONSE TO THE COMMAND IS EXPLICITLY00740000
+      *    TESTED BY THE PROGRAM.                                       00750000
+      *                                                                 00760000
+           EXEC CICS RECEIVE                                            00770000
+                MAP('MENU')                                             00780000
+                MAPSET('MA43MNU')                                       00790000
+                RESP(CODE-CICS)                                         00800000
+           END-EXEC.                                                    00810000
+      *                                                                 00820000
+      *    CHECK CODE-CICS TO COMMAND                                   00830000
+      *                                                                 00840000
+      *    IF CODE-CICS = DFHRESP(MAPFAIL)                              00850000
+      *       MOVE 'PRESS CLEAR TO EXIT' TO ERREUR-MESSAGE              00860000
+      *       SET ERREUR-AVEC-MESSAGE TO TRUE                           00870000
+           IF CODE-CICS NOT = DFHRESP(NORMAL)                           00880000
+              AND CODE-CICS NOT = DFHRESP(MAPFAIL)                      00890000
+              PERFORM ANALYSE-RESP THRU  ANALYSE-RESP-F                 00900000
+           ELSE                                                         00910000
+              PERFORM CONTROLE-MENU THRU CONTROLE-MENU-F.               00920000
+       RECEPT-MENU-F.                                                   00930000
+           EXIT.                                                        00940000
+       CONTROLE-MENU.                                                   00950000
+           IF KEYL = ZERO THEN                                          00960000
+              MOVE 'PLEASE ENTER AN ACCOUNT NUMBER'                     00970000
+                   TO ERREUR-MESSAGE                                    00980000
+              SET ERREUR-AVEC-MESSAGE TO TRUE                           00990000
+           ELSE                                                         01000000
+      *                                                                 01010000
+      *    THE ACCOUNT NUMBER IS VALIDATED AND SAVED.                   01020000
+      *                                                                 01030000
+              IF KEYI IS NOT NUMERIC                                    01040000
+                 MOVE 'PLEASE ENTER AN ACCOUNT NUMBER'                  01050000
+                      TO ERREUR-MESSAGE                                 01060000
+              SET ERREUR-AVEC-MESSAGE TO TRUE                           01070000
+              END-IF                                                    01100000
+           END-IF.                                                      01110000
+       CONTROLE-MENU-F.                                                 01120000
+           EXIT.                                                        01130000
+      *                                                                 01140000
+      *                     RECEPTION MAP LISTE                         01150000
+      *                                                                 01160000
+       RECEPT-LISTE.                                                    01170000
+      *                                                                 01180000
+      *    THE "RECEIVE MAP" COMMAND MAPS IN THE VARIABLES FROM THE     01190000
+      *    SCREEN.                                                      01200000
+      *                                                                 01210000
+           EXEC CICS RECEIVE                                            01220000
+                MAP('LISTE')                                            01230000
+                MAPSET('MA43LIS')                                       01240000
+                RESP(CODE-CICS)                                         01250000
+           END-EXEC.                                                    01260000
+      *                                                                 01270000
+      *    CHECK CODE-CICS TO COMMAND                                   01280000
+      *                                                                 01290000
+           SET ERREUR-SANS TO TRUE.                                     01300000
+           IF CODE-CICS NOT = DFHRESP(NORMAL)                           01301000
+              AND CODE-CICS NOT = DFHRESP(MAPFAIL)                      01302000
+              PERFORM ANALYSE-RESP THRU  ANALYSE-RESP-F                 01303000
+           END-IF.                                                      01304000
+       RECEPT-LISTE-F.                                                  01410000
+           EXIT.                                                        01420000
+      *                                                                 01430000
+      *                     ENVOI MAP MENU                              01431000
+      *                                                                 01432000
+       ENVOI-MENU.                                                      01433000
+      *                                                                 01433100
+      *    THIS CODE GETS CONTROL WHEN AN ADD OR UPDATE IS COMPLETE.    01433200
+      *    AN INFORMATION OR ERROR MESSAGE IS IN "MESSAGES".            01433300
+      *    THE OPERATOR INSTRUCTION MAP AREA IS CLEARED. THE MESSAGE    01433400
+      *    IS MOVED TO THE MAP AREA AND HIGHLIGHTED.                    01433500
+      *                                                                 01433600
+           MOVE LOW-VALUE TO MENUO.                                     01433700
+           MOVE DFHBMASB  TO MSGA.                                      01433800
+           MOVE ERREUR-MESSAGE TO MSGO.                                 01433900
+      *                                                                 01434000
+      *    THE OPERATOR INSTRUCTION MAP "CY43MNU" IS DISPLAYED ON AN    01435000
+      *    ERASED SCREEN.                                               01436000
+      *                                                                 01437000
+           EXEC CICS SEND                                               01438000
+                MAP('MENU')                                             01439000
+                MAPSET('MA43MNU')                                       01440000
+                ERASE                                                   01450000
+                RESP(CODE-CICS)                                         01460000
+           END-EXEC.                                                    01470000
+           IF CODE-CICS NOT = DFHRESP(NORMAL)                           01480000
+              PERFORM ANALYSE-RESP THRU  ANALYSE-RESP-F.                01490000
+       ENVOI-MENU-F.                                                    01500000
+           EXIT.                                                        01510000
+      *                                                                 01520000
+      *                     ENVOI MAP LISTE                             01530000
+      *                                                                 01540000
+       ENVOI-LISTE.                                                     01550000
+      *                                                                 01560000
+      *    "MAP-SEND" SENDS THE MAP "CY43LIS" TO THE SCREEN SPECIFYING  01570000
+      *    THAT THE SCREEN IS TO BE ERASED BEFORE THE MAP IS DISPLAYED. 01580000
+      *                                                                 01590000
+           EXEC CICS SEND                                               01600000
+                MAP('LISTE')                                            01610000
+                MAPSET('MA43LIS')                                       01620000
+                ERASE                                                   01630000
+                RESP(CODE-CICS)                                         01640000
+           END-EXEC.                                                    01650000
+           IF CODE-CICS NOT = DFHRESP(NORMAL)                           01651000
+              PERFORM ANALYSE-RESP THRU  ANALYSE-RESP-F.                01652000
+       ENVOI-LISTE-F.                                                   01653000
+           EXIT.                                                        01654000
+      *                                                                 01655000
+      *                     ENVOI MAP LISTE DATA SEULEMENT              01656000
+      *                                                                 01657000
+       ENVOI-LISTE-DATA.                                                01658000
+           EXEC CICS SEND                                               01659000
+                MAP('LISTE') DATAONLY                                   01660000
+                MAPSET('MA43LIS')                                       01670000
+                RESP(CODE-CICS)                                         01671000
+           END-EXEC.                                                    01671100
+           IF CODE-CICS NOT = DFHRESP(NORMAL)                           01671200
+              PERFORM ANALYSE-RESP THRU  ANALYSE-RESP-F.                01671300
+       ENVOI-LISTE-DATA-F.                                              01671400
+           EXIT.                                                        01671500
+      *                                                                 01671600
+      *                     PAS D ENCHAINEMENT                          01671700
+      *                                                                 01671800
+       TRT-RETURN-CICS.                                                 01671900
+      *                                                                 01672000
+      *    THE PROGRAM TERMINATES BY RETURNING TO CICS.                 01673000
+      *    NO TRANSACTION IDENTIFIER OR "COMMAREA" IS SPECIFIED.        01674000
+      *                                                                 01675000
+           EXEC CICS RETURN END-EXEC.                                   01676000
+       TRT-RETURN-CICS-F.                                               01677000
+           EXIT.                                                        01678000
+      *                                                                 01679000
+      *                     ENCHAINEMENT TRANSACTION + COMMAREA         01680000
+      *                                                                 01690000
+       TRT-RETURN-COMM.                                                 01700000
+      *                                                                 01710000
+      *    AFTER THE "FILE ADD" OR "FILE UPDATE" SCREEN HAS BEEN        01720000
+      *    DISPLAYED THE PROGRAM BRANCHES HERE TO RETURN TO CICS        01730000
+      *    AWAITING A CODE-CICS FROM THE TERMINAL. THE "RETURN" GIVES   01740000
+      *    CICS THE TRANSACTION IDENTIFIER FOR NEXT TRANSACTION AT      01750000
+      *    THIS TERMINAL TOGETHER WITH A "COMMAREA" CONTAINING ALL      01760000
+      *    INFORMATION THAT THE PROGRAM NEEDS TO CONTINUE THE UPDATE.   01770000
+      *    THE "COMMAREA" IS PASSED TO THE NEXT INVOCATION OF THIS      01780000
+      *    PROGRAM.                                                     01790000
+      *                                                                 01800000
+           MOVE 30 TO LG-W-DFHCOMMAREA.                                 01801000
+           EXEC CICS RETURN                                             01810000
+                TRANSID(EIBTRNID)                                       01820000
+                COMMAREA(W-DFHCOMMAREA)                                 01830000
+                LENGTH(LG-W-DFHCOMMAREA)                                01840000
+           END-EXEC.                                                    01850000
+       TRT-RETURN-COMM-F.                                               01860000
+           EXIT.                                                        01870000
+      *                                                                 01880000
+      *                     ENCHAINEMENT TRANSID MENU                   01890000
+      *                                                                 01900000
+       TRT-RETURN-Z043.                                                 01910000
+      *                                                                 01920000
+      *       THIS INVOCATION OF THE PROGRAM TERMINATES. THE "TRANSID"  01930000
+      *       OF "MENU" CAUSES THE OPERATOR INSTRUCTION PROGRAM TO BE   01940000
+      *       INVOKED WHEN THE NEXT CODE-CICS IS RECEIVED FROM THE      01950000
+      *       TERMINAL.                                                 01960000
+      *                                                                 01970000
+           EXEC CICS RETURN                                             01980000
+                TRANSID('Z043')                                         01990000
+           END-EXEC.                                                    02000000
+       TRT-RETURN-Z043-F.                                               02010000
+           EXIT.                                                        02020000
+       TRT-RETURN-CESF.                                                 02021000
+           EXEC CICS RETURN                                             02021100
+                TRANSID('CESF')                                         02021200
+           END-EXEC.                                                    02021300
+       TRT-RETURN-CESF-F.                                               02021700
+           EXIT.                                                        02022000
+       ANALYSE-RESP.                                                    02030000
+      *                                                                 02040000
+      *    THIS ROUTINE GAINS CONTROL WHENEVER A CICS COMMAND RETURNS A 02050000
+      *    NON-"NORMAL" CODE-CICSMMTHE ROUTINE EXPLICITLY CHECKS FOR THE02060000
+      *    CODE-CICS "NOTFND", "DUPREC", AND "MAPFAIL". THERE IS ALSO A 02070000
+      *    'CATCH ALL' TO TRAP ANY CODE-CICS THAT IS NOT "NORMAL". THE  02080000
+      *    ROUTINE "MENU" IS CBRWED TO RE-DISPLAY THE MENU MAP, ALONG   02090000
+      *    WITH AN ERROR MESSAGE.                                       02100000
+      *                                                                 02110000
+           MOVE 'ERREUR NON DEFINIE' TO ERREUR-MESSAGE.                 02120000
+           SET ERREUR-CICS TO TRUE.                                     02130000
+       ANALYSE-RESP-F.                                                  02140000
+           EXIT.                                                        02150000
+

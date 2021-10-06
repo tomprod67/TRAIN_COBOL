@@ -1,0 +1,10 @@
+         02  COMM-FILEREC.                                              00310000
+           03  COMM-STAT      PIC X.                                    00320000
+           03  COMM-NUMB      PIC X(6).                                 00330000
+           03  COMM-NAME      PIC X(20).                                00340000
+           03  COMM-ADDRX     PIC X(20).                                00350000
+           03  COMM-PHONE     PIC X(8).                                 00360000
+           03  COMM-DATEX     PIC X(8).                                 00370000
+           03  COMM-AMOUNT    PIC X(8).                                 00380000
+           03  COMM-COMMENT   PIC X(9).                                 00390000
+

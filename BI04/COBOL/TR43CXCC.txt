@@ -1,0 +1,912 @@
+       CBL CICS('EXCI,COBOL2,NOCBLCARD')                                00010025
+       IDENTIFICATION DIVISION.                                         00020024
+       PROGRAM-ID. CI43CXCC.                                            00030028
+      ****************************************************************  00040024
+      *                                                              *  00050024
+      *  PROGRAM NAME: TR43CXCC                                      *  00060028
+      *                                                              *  00070024
+      *  TITLE: Sample Batch Client Program.                         *  00080024
+      *                                                              *  00090024
+      *                                                              *  00100024
+      *  PROGRAM DESCRIPTION: Ce programme Batch est un exemple      *  00110024
+      *                       de codage utilisant la technique       *  00120024
+      *                       d'appels API EXCI.                     *  00130024
+      *                                                              *  00140024
+      *  INPUT:         Ce programme Batch client utilise un         *  00150024
+      *                 param}trage 'JCL PARM' pour remplacer l'     *  00160024
+      *                 application CICS par CICS®  et compl{ter     *  00170024
+      *                 le USERID.                                   *  00180024
+      *                 Le fichier CICS acc{d{ est cod{ dans le      *  00190024
+      *                 programme (zone PARM-FILE)                   *  00200024
+      *                                                              *  00210024
+      *  OUTPUT:        Les enregistrements du fichier CICS sont     *  00220024
+      *                 copi{s dans le fichier FIMP.                 *  00230024
+      *                                                              *  00240024
+      *                                                              *  00250024
+      ****************************************************************  00260024
+      *The EXCI CALL interface consists of six commands that allow   *  00270024
+      * you to :                                                     *  00280024
+      *  -Allocate and open sessions to a CICS® system from non-CICS *  00290024
+      *program running under MVS                                     *  00300024
+      *  -Issue distributed program link (DPL) requests on these     *  00310024
+      *sessions                                                      *  00320024
+      *  -Close and deallocate sessions on completion of DPL requests*  00330024
+      *                                                              *  00340024
+      * The six EXCI commands are:                                   *  00350024
+      *    Initialize_User                                           *  00360024
+      *    Allocate_Pipe                                             *  00370024
+      *    Open_Pipe                                                 *  00380024
+      *    DPL_Request                                               *  00390024
+      *    Close_Pipe                                                *  00400024
+      *    Deallocate_Pipe                                           *  00410024
+      *                                                              *  00420024
+      * Ces commandes sont r{alis{es par le programme TRAGET-PROGRAM *  00430024
+      ****************************************************************  00440024
+       ENVIRONMENT DIVISION.                                            00450024
+      *==============================================================*  00460024
+       INPUT-OUTPUT SECTION.                                            00470024
+       FILE-CONTROL.                                                    00480024
+           SELECT FIMP ASSIGN TO LOGTR43.                               00490028
+       DATA DIVISION.                                                   00500024
+      *==============================================================*  00510024
+       FILE SECTION.                                                    00520024
+      *==============================================================*  00530024
+       FD  FIMP                                                         00540024
+           RECORDING MODE IS F.                                         00550024
+       01  FIMP-FD            PIC X(128).                               00560024
+       WORKING-STORAGE SECTION.                                         00570024
+      *==============================================================*  00580024
+      *   Declare Call level,DPL, and EXEC level Return Code areas.  *  00590024
+      *==============================================================*  00600024
+      *    COPY DFHXCPLO.                                               00610024
+      ***************************************************************** 00620024
+      *                                                               * 00621024
+      * CONTROL BLOCK NAME = DFHXCRCO                                 * 00622024
+      *                                                               * 00623024
+      *                                                               * 00624024
+      * DESCRIPTIVE NAME = CICS TS  External CICS Interface Parameter * 00625024
+      *                    list values                                * 00626024
+      *                                                               * 00627024
+      *                                                               * 00628024
+      *                                                               * 00629024
+      *                                                               * 00629124
+      *      Licensed Materials - Property of IBM                     * 00629224
+      *                                                               * 00629324
+      *      "Restricted Materials of IBM"                            * 00629424
+      *                                                               * 00629524
+      *      5655-Y04                                                 * 00629624
+      *                                                               * 00629724
+      *      (C) Copyright IBM Corp. 1993, 2000"                      * 00629824
+      *                                                               * 00629924
+      *                                                               * 00630024
+      *                                                               * 00630124
+      *                                                               * 00630224
+      * STATUS = 6.9.0                                                * 00630324
+      *                                                               * 00630424
+      *                                                               * 00630524
+      * FUNCTION =                                                    * 00630624
+      *      Cobol copybook to be used by applications using the      * 00630724
+      *      External CICS Interface APIs.                            * 00630824
+      *                                                               * 00630924
+      *      It provides the structure of CALL API return code areas  * 00631024
+      *      required and equates for the various parameters.         * 00631124
+      *                                                               * 00631224
+      *      For the EXEC API, the structure of the EXEC RETAREA is   * 00631324
+      *      supplied.                                                * 00631424
+      *                                                               * 00631524
+      *                                                               * 00631624
+      * NOTES :                                                       * 00631724
+      *  DEPENDENCIES = S/370                                         * 00631824
+      *  RESTRICTIONS = none                                          * 00631924
+      *  MODULE TYPE = N/A                                            * 00632024
+      *  PROCESSOR = COBOL                                            * 00632124
+      *                                                               * 00632224
+      *---------------------------------------------------------------* 00632324
+      *                                                               * 00632424
+      * CHANGE ACTIVITY :                                             * 00632524
+      *   $SEG(DFHXCPLO),COMP(IRC),PROD(CICS TS ):                    * 00632624
+      *                                                               * 00632724
+      *   PN= REASON REL YYMMDD HDXIII : REMARKS                      * 00632824
+      * $01= A38644 610 000720 HDBGNRB : Migrate PQ38644 from SPA R53 * 00632924
+      * $02= A40786 610 000929 HDBGNRB : Migrate PQ40786 from SPA R53 * 00633024
+      *  $P0= M84399 410 931105 HD2GJST: Provide plist structure & valu 00633124
+      *  $P1= M30308 530 981019 HD2TAHI: Add NOSYNCONRETURN           * 00633224
+      *                                                               * 00633324
+      ***************************************************************** 00633424
+      *=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=* 00633524
+      *                                                                 00633624
+      *   EXCI_RETURN_CODE : Structure of the return_area required for  00633724
+      *                      all CALL API requests of the External CICS 00633824
+      *                      Interface.                                 00633924
+      *=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=* 00634024
+                                                                        00634124
+        01 EXCI-RETURN-CODE.                                            00634224
+          02 EXCI-RESPONSE    PIC 9(8) COMP.                            00634324
+          02 EXCI-REASON      PIC 9(8) COMP.                            00634424
+          02 EXCI-SUB-REASON1 PIC 9(8) COMP.                            00634524
+          02 EXCI-SUB-REASON2 PIC 9(8) COMP.                            00634624
+          02 EXCI-MSG-PTR     POINTER.                                  00634724
+      *=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=* 00634824
+      *                                                                 00634924
+      *   EXCI_DPL_RETAREA : Structure of the dpl_retarea required on a 00635024
+      *                      DPL request using the CALL API of the      00635124
+      *                      External CICS Interface.                   00635224
+      *                                                                 00635324
+      *=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=* 00635424
+                                                                        00635524
+        01 EXCI-DPL-RETAREA.                                            00635624
+          02 EXCI-DPL-RESP    PIC 9(8) COMP.                            00635724
+          02 EXCI-DPL-RESP2   PIC 9(8) COMP.                            00635824
+          02 EXCI-DPL-ABCODE  PIC X(4).                                 00635924
+      ***************************************************************** 00636024
+      *                                                                 00636124
+      *   EXCI_EXEC_RETURN_CODE : Structure of the RETCODE data area    00636224
+      *                           required to use the EXEC API of the   00636324
+      *                           External CICS Interface.              00636424
+      *                                                                 00636524
+      ***************************************************************** 00636624
+                                                                        00636724
+        01 EXCI-EXEC-RETURN-CODE.                                       00636824
+          02 EXEC-RESP        PIC 9(8) COMP.                            00636924
+          02 EXEC-RESP2       PIC 9(8) COMP.                            00637024
+          02 EXEC-ABCODE      PIC X(4).                                 00637124
+          02 EXEC-MSG-LEN     PIC 9(8) COMP.                            00637224
+          02 EXEC-MSG-PTR     POINTER.                                  00637324
+                                                                        00637424
+      ***************************************************************** 00637524
+      *                                                                 00637624
+      *   CALL API Parameter values                                     00637724
+      *                                                                 00637824
+      ***************************************************************** 00637924
+      ***************************************************************** 00638024
+      *  Constants for use with VERSION_NUMBER parameter                00638124
+      ***************************************************************** 00638224
+        77 VERSION-1       PIC 9(8) COMP VALUE 1.                       00638324
+        77 VERSION-2       PIC 9(8) COMP VALUE 2.                       00638424
+      ***************************************************************** 00638524
+      *  Constants for use with the CALL_TYPE parameter                 00638624
+      ***************************************************************** 00638724
+        77 INIT-USER       PIC 9(8) COMP VALUE 1.                       00638824
+        77 ALLOCATE-PIPE   PIC 9(8) COMP VALUE 2.                       00638924
+        77 OPEN-PIPE       PIC 9(8) COMP VALUE 3.                       00639024
+        77 CLOSE-PIPE      PIC 9(8) COMP VALUE 4.                       00639124
+        77 DEALLOCATE-PIPE PIC 9(8) COMP VALUE 5.                       00639224
+        77 DPL-REQUEST     PIC 9(8) COMP VALUE 6.                       00639324
+      ***************************************************************** 00639424
+      *  Constants for use with ALLOCATE_OPTS parameter                 00639524
+      ***************************************************************** 00639624
+        77 SPECIFIC-PIPE   PIC X         VALUE X'00'.                   00639724
+        77 GENERIC-PIPE    PIC X         VALUE X'80'.                   00639824
+      ***************************************************************** 00639924
+      *  Constants for use with DPL_OPTS parameter                      00640024
+      ***************************************************************** 00640124
+        77 NOSYNCONRETURN  PIC X         VALUE X'00'.                   00640224
+        77 SYNCONRETURN    PIC X         VALUE X'80'.                   00640324
+      ***************************************************************** 00640424
+      *                                                                 00640524
+      *   FIN  API Parameter values                                     00640624
+      *                                                                 00640724
+      ***************************************************************** 00640824
+      *==============================================================*  00640924
+      *   Declare Areas to be used for outputting return codes.      *  00641024
+      *==============================================================*  00642024
+       01 msg-edit-rcs.                                                 00643024
+           05 FILLER             PIC X(20)  VALUE SPACES.               00644024
+           05 msg-edit-resp      PIC 9(8).                              00645024
+           05 FILLER             PIC XX     VALUE SPACES.               00646024
+           05 msg-edit-resp2     PIC 9(8).                              00647024
+           05 FILLER             PIC XX     VALUE SPACES.               00648024
+           05 msg-edit-exci      PIC 9(8).                              00649024
+           05 FILLER             REDEFINES msg-edit-exci.               00650024
+              10 msg-edit-exci1-4 PIC X(4).                             00660024
+              10 msg-edit-exci5-8 PIC X(4).                             00670024
+           05 FILLER             PIC X(80) VALUE SPACES.                00680024
+       01 I                     PIC S9(8) COMP.                         00690024
+       01 IX                    PIC S9(8) COMP.                         00700024
+       01 IY                    PIC S9(8) COMP.                         00710024
+       01 OUT-REC.                                                      00720024
+           05 OUT-rec-oct        PIC X OCCURS 128 TIMES.                00730024
+      *==============================================================*  00740024
+      *   Define Server COMM-FONCTION codes/Return Codes.            *  00750024
+      *==============================================================*  00760024
+       01 W-FONCTION.                                                   00770024
+           05 W-FONCTION-INIT    PIC S9(8) COMP VALUE 1.                00780024
+           05 W-FONCTION-read    PIC S9(8) COMP VALUE 2.                00790024
+           05 W-FONCTION-CLOS    PIC S9(8) COMP VALUE 3.                00800024
+      *==============================================================*  00810024
+      *   Initialise Target information variables.                   *  00820024
+      *==============================================================*  00830024
+       01 XCIS-FILE           PIC X(8)       VALUE 'TR43FCLI'.          00840028
+       01 XCIS-PROGRAM        PIC X(8)       VALUE 'CI43CXCS'.          00850028
+       01 XCIS-TRANSID        PIC X(4)       VALUE 'EXCI'.              00860024
+       01 XCIS-SYS.                                                     00870024
+          05 XCIS-sys-oct      PIC X OCCURS 8 TIMES.                    00880024
+       01 XCIS-USER.                                                    00890024
+          05 XCIS-USER-OCT     PIC X OCCURS 8 TIMES.                    00900024
+      *==============================================================*  00910024
+      *   Initialise Call level specific variables.                  *  00920024
+      *==============================================================*  00930024
+       01 xcis-fct-appli      PIC X(8)       VALUE 'BATCHCLI'.          00940024
+       01 xcis-fct-user       PIC S9(8) COMP VALUE ZERO.                00950024
+       01 xcis-fct-pipe       PIC S9(8) COMP VALUE ZERO.                00960024
+      *==============================================================*  00970024
+      *   Define xcis-comm struct.                                   *  00980024
+      *==============================================================*  00990024
+       01 xcis-comm.                                                    01000024
+          05 COMM-FONCTION    PIC S9(8) COMP VALUE ZERO.                01010024
+          05 COMM-FILE        PIC X(8)       VALUE SPACES.              01020024
+          05 COMM-CLE         PIC X(6)       VALUE '000001'.            01030024
+          05 COMM-RECORD      PIC X(80)      VALUE SPACES.              01040024
+      *==============================================================*  01050024
+      *   Initialise Commarea length and Data length(in bytes).      *  01060024
+      *==============================================================*  01070024
+       01 XCIS-COMM-DPL-98    PIC S9(8) COMP VALUE 98.                  01080024
+       01 XCIS-DATA-DPL-18    PIC S9(8) COMP VALUE 18.                  01090024
+       01 XCIS-COMM-LNK-18    PIC S9(4) COMP VALUE 18.                  01100024
+       01 XCIS-DATA-LNK-18    PIC S9(4) COMP VALUE 18.                  01110024
+      *==============================================================*  01120024
+      *   Initialise program specific variables and flags.           *  01130024
+      *==============================================================*  01140024
+       01  W-continue          PIC X.                                   01150024
+           88 b-continue-ok    VALUE 'O'.                               01160024
+           88 b-continue-ko    VALUE 'N'.                               01170024
+           88 b-continue-stop  VALUE 'S'.                               01180024
+       01  w-rc               PIC S9(8) COMP VALUE ZERO.                01190024
+           88 b-rc-BROWSE        VALUE ZERO.                            01200024
+           88 b-rc-NOBRWS        VALUE 4.                               01210024
+           88 b-rc-EOF           VALUE 8.                               01220024
+           88 b-rc-NOFILE        VALUE 12.                              01230024
+           88 b-rc-ERROR         VALUE 16.                              01240024
+       01  PROGRAM-FLAGS.                                               01250024
+           05  ABORT            PIC X(3)       VALUE 'NO '.             01260024
+           05  YES              PIC X(3)       VALUE 'YES'.             01270024
+           05  NOT-YET          PIC X(3)       VALUE 'NO '.             01280024
+       01  SAVED-RESPONSE     PIC 9(8)  COMP VALUE ZERO.                01290024
+       01  MSG-BLC            PIC X(128) VALUE SPACES.                  01300024
+       01  MSG-TIA.                                                     01310024
+           05 FILLER PIC X(30) VALUE '*===================== EXCI Sa'.  01320024
+           05 FILLER PIC X(30) VALUE 'mple Batch Client Program ===='.  01330024
+           05 FILLER PIC X(30) VALUE '===================*          '.  01340024
+           05 FILLER PIC X(38) VALUE SPACES.                            01350024
+       01  MSG-VID.                                                     01360024
+           05 FILLER PIC X(30) VALUE '*                             '.  01370024
+           05 FILLER PIC X(30) VALUE '                              '.  01380024
+           05 FILLER PIC X(30) VALUE '                   *          '.  01390024
+           05 FILLER PIC X(38) VALUE SPACES.                            01400024
+       01  MSG-EXEC-LEVEL-PROC.                                         01410024
+           05 FILLER PIC X(30) VALUE '*  EXEC Level Processor.      '.  01411024
+           05 FILLER PIC X(30) VALUE '                              '.  01412024
+           05 FILLER PIC X(30) VALUE '                   *          '.  01413024
+           05 FILLER PIC X(38) VALUE SPACES.                            01414024
+       01  msg-SETTING-LEVEL-CALL.                                      01415024
+           05 FILLER PIC X(30) VALUE '*    Setting up the EXEC level'.  01416024
+           05 FILLER PIC X(30) VALUE ' call                         '.  01417024
+           05 FILLER PIC X(30) VALUE '                   *          '.  01418024
+           05 FILLER PIC X(38) VALUE SPACES.                            01419024
+       01  MSG-LINK-REQUEST-OK.                                         01420024
+           05 FILLER PIC X(30) VALUE '*    The Link Request has succ'.  01430024
+           05 FILLER PIC X(30) VALUE 'fully completed               '.  01440024
+           05 FILLER PIC X(30) VALUE '                   *          '.  01441024
+           05 FILLER PIC X(38) VALUE SPACES.                            01442024
+       01  MSG-SERVER-REPONSE.                                          01443024
+           05 FILLER PIC X(30) VALUE '*    Server response:         '.  01444024
+           05 FILLER PIC X(30) VALUE '                              '.  01445024
+           05 FILLER PIC X(30) VALUE '                   *          '.  01446024
+           05 FILLER PIC X(38) VALUE SPACES.                            01447024
+       01  MSG-FILE-BROWSABLE.                                          01448024
+           05 FILLER PIC X(30) VALUE '*       The file is set to a b'.  01449024
+           05 FILLER PIC X(30) VALUE 'rowsable state                '.  01450024
+           05 FILLER PIC X(30) VALUE '                   *          '.  01460024
+           05 FILLER PIC X(38) VALUE SPACES.                            01470024
+       01  MSG-FILE-NOTFOUND.                                           01480024
+           05 FILLER PIC X(30) VALUE '*       The file could not be '.  01490024
+           05 FILLER PIC X(30) VALUE 'found                         '.  01500024
+           05 FILLER PIC X(30) VALUE '                   *          '.  01501024
+           05 FILLER PIC X(38) VALUE SPACES.                            01502024
+       01  MSG-FILE-NOTINITIALISED.                                     01503024
+           05 FILLER PIC X(30) VALUE '*       The file could not be '.  01504024
+           05 FILLER PIC X(30) VALUE 'successfully initialised.     '.  01505024
+           05 FILLER PIC X(30) VALUE '                   *          '.  01506024
+           05 FILLER PIC X(38) VALUE SPACES.                            01507024
+       01  MSG-SERIOUS-ERROR.                                           01508024
+           05 FILLER PIC X(30) VALUE '*       A serious error was de'.  01509024
+           05 FILLER PIC X(30) VALUE 'tected.                       '.  01510024
+           05 FILLER PIC X(30) VALUE '                   *          '.  01520024
+           05 FILLER PIC X(38) VALUE SPACES.                            01530024
+       01  MSG-LINK-REQUEST-KO.                                         01540024
+           05 FILLER PIC X(30) VALUE '*    The Link Request has fail'.  01550024
+           05 FILLER PIC X(30) VALUE 'ed.                           '.  01560024
+           05 FILLER PIC X(30) VALUE '                   *          '.  01561024
+           05 FILLER PIC X(38) VALUE SPACES.                            01562024
+       01  MSG-message-receive.                                         01563024
+           05 FILLER PIC X(30) VALUE '*    A message was received fr'.  01564024
+           05 FILLER PIC X(30) VALUE 'om the target CICS system:    '.  01565024
+           05 FILLER PIC X(30) VALUE '                   *          '.  01566024
+           05 FILLER PIC X(38) VALUE SPACES.                            01567024
+       01  MSG-abort-process.                                           01568024
+           05 FILLER PIC X(30) VALUE '*    >>>> Aborting further pro'.  01569024
+           05 FILLER PIC X(30) VALUE 'cessing <<<<                  '.  01570024
+           05 FILLER PIC X(30) VALUE '                   *          '.  01580024
+           05 FILLER PIC X(38) VALUE SPACES.                            01590024
+       01  MSG-call-level-process.                                      01600024
+           05 FILLER PIC X(30) VALUE '*  CALL Level Processor.      '.  01610024
+           05 FILLER PIC X(30) VALUE '                              '.  01620024
+           05 FILLER PIC X(30) VALUE '                   *          '.  01621024
+           05 FILLER PIC X(38) VALUE SPACES.                            01622024
+       01  MSG-INIT-USER-OK.                                            01623024
+           05 FILLER PIC X(30) VALUE '*    Initialise_User call comp'.  01624024
+           05 FILLER PIC X(30) VALUE 'lete.                         '.  01625024
+           05 FILLER PIC X(30) VALUE '                   *          '.  01626024
+           05 FILLER PIC X(38) VALUE SPACES.                            01627024
+       01  MSG-ALLOC-PIPE-OK.                                           01628024
+           05 FILLER PIC X(30) VALUE '*    Allocate_Pipe call comple'.  01629024
+           05 FILLER PIC X(30) VALUE 'te.                           '.  01630024
+           05 FILLER PIC X(30) VALUE '                   *          '.  01640024
+           05 FILLER PIC X(38) VALUE SPACES.                            01650024
+       01  MSG-OPEN-PIPE-OK.                                            01660024
+           05 FILLER PIC X(30) VALUE '*    Open_pipe call complete. '.  01670024
+           05 FILLER PIC X(30) VALUE 'te.                           '.  01680024
+           05 FILLER PIC X(30) VALUE '                   *          '.  01681024
+           05 FILLER PIC X(38) VALUE SPACES.                            01682024
+       01  MSG-connect-ok.                                              01683024
+           05 FILLER PIC X(30) VALUE '*    The connexion has been s'.   01684024
+           05 FILLER PIC X(30) VALUE 'uccessful.                    '.  01685024
+           05 FILLER PIC X(30) VALUE '                   *          '.  01686024
+           05 FILLER PIC X(38) VALUE SPACES.                            01687024
+       01  MSG-target-file.                                             01688024
+           05 FILLER PIC X(30) VALUE '*    The target file follows: '.  01689024
+           05 FILLER PIC X(30) VALUE '                              '.  01690024
+           05 FILLER PIC X(30) VALUE '                   *          '.  01700024
+           05 FILLER PIC X(38) VALUE SPACES.                            01710024
+       01  MSG-top-file.                                                01720024
+           05 FILLER PIC X(30) VALUE '*=========================== T'.  01730024
+           05 FILLER PIC X(30) VALUE 'op of file ==================='.  01740024
+           05 FILLER PIC X(30) VALUE '===================*          '.  01741024
+           05 FILLER PIC X(38) VALUE SPACES.                            01742024
+       01  MSG-end-file.                                                01743024
+           05 FILLER PIC X(30) VALUE '*=========================== E'.  01744024
+           05 FILLER PIC X(30) VALUE 'nd of file ==================='.  01745024
+           05 FILLER PIC X(30) VALUE '===================*          '.  01746024
+           05 FILLER PIC X(38) VALUE SPACES.                            01747024
+       01  MSG-connect-ko.                                              01748024
+           05 FILLER PIC X(30) VALUE '*    The connexion has been u'.   01749024
+           05 FILLER PIC X(30) VALUE 'nsuccessful.  Return codes are'.  01750024
+           05 FILLER PIC X(30) VALUE ':                  *          '.  01760024
+           05 FILLER PIC X(38) VALUE SPACES.                            01770024
+       01  MSG-dpl-request-ko.                                          01780024
+           05 FILLER PIC X(30) VALUE '*      The DPL request has fai'.  01790024
+           05 FILLER PIC X(30) VALUE 'led.                          '.  01800024
+           05 FILLER PIC X(30) VALUE ':                  *          '.  01801024
+           05 FILLER PIC X(38) VALUE SPACES.                            01802024
+       01  MSG-link-return.                                             01803024
+           05 FILLER PIC X(30) VALUE '*      Link return codes are: '.  01804024
+           05 FILLER PIC X(30) VALUE '                              '.  01805024
+           05 FILLER PIC X(30) VALUE '                   *          '.  01806024
+           05 FILLER PIC X(38) VALUE SPACES.                            01807024
+       01  MSG-dpl-return.                                              01808024
+           05 FILLER PIC X(30) VALUE '*      DPL return codes are:  '.  01809024
+           05 FILLER PIC X(30) VALUE '                              '.  01810024
+           05 FILLER PIC X(30) VALUE '                   *          '.  01820024
+           05 FILLER PIC X(38) VALUE SPACES.                            01830024
+       01  MSG-close-dpl.                                               01840024
+           05 FILLER PIC X(30) VALUE '*    Closing DPL Request has b'.  01850024
+           05 FILLER PIC X(30) VALUE 'een attemped.                 '.  01860024
+           05 FILLER PIC X(30) VALUE '                   *          '.  01861024
+           05 FILLER PIC X(38) VALUE SPACES.                            01862024
+       01  MSG-close-pipe.                                              01863024
+           05 FILLER PIC X(30) VALUE '*    Close_Pipe call complete.'.  01864024
+           05 FILLER PIC X(30) VALUE '                              '.  01865024
+           05 FILLER PIC X(30) VALUE '                   *          '.  01866024
+           05 FILLER PIC X(38) VALUE SPACES.                            01867024
+       01  MSG-dealloc-pipe.                                            01868024
+           05 FILLER PIC X(30) VALUE '*    Deallocate_Pipe call comp'.  01869024
+           05 FILLER PIC X(30) VALUE 'lete                          '.  01870024
+           05 FILLER PIC X(30) VALUE '                   *          '.  01880024
+           05 FILLER PIC X(38) VALUE SPACES.                            01890024
+       01  MSG-end-exci.                                                01900024
+           05 FILLER PIC X(30) VALUE '*=================== End of EX'.  01910024
+           05 FILLER PIC X(30) VALUE 'CI SAMPLE BATCH CLIENT PROGRAM'.  01920024
+           05 FILLER PIC X(30) VALUE ' ==================*          '.  01921024
+           05 FILLER PIC X(38) VALUE SPACES.                            01922024
+       01  MSG-parameters.                                              01923024
+           05 FILLER     PIC X(17) VALUE '*    Parameters: '.           01924024
+           05 FILL-APP   PIC X(7) VALUE 'APPLID='.                      01925024
+           05 MSG-SYSTEM PIC X(8) VALUE SPACES.                         01926024
+           05 FILL-USER  PIC X(9) VALUE '  USERID='.                    01927024
+           05 MSG-USERID PIC X(8) VALUE SPACES.                         01928024
+           05 FILLER     PIC X(30) VALUE SPACES.                        01929024
+           05 FILLER     PIC X(1) VALUE '*'.                            01930024
+           05 FILLER     PIC X(48) VALUE SPACES.                        01940024
+      *==============================================================*  01950024
+       LINKAGE SECTION.                                                 01960024
+         01  l-null-ptr USAGE IS POINTER.                               01970024
+      *                                                                 01980024
+         01 l-CALL-MSG.                                                 01990024
+            05 l-CALL-MSG-LEN      PIC S9(4) COMP.                      02000024
+            05 FILLER              PIC S9(4) COMP.                      02010024
+            05 l-CALL-MSG-OCT      PIC X OCCURS 128 TIMES.              02020024
+                                                                        02030024
+      *                                                                 02040024
+         01 l-EXEC-MSG.                                                 02050024
+            05 l-EXEC-MSG-OCT      PIC X OCCURS 128 TIMES.              02060024
+      *                                                                 02070024
+         01 L-PARM.                                                     02080024
+            05 L-PARM-LG           PIC 9(4) COMP.                       02090024
+            05 L-PARM-OCT          PIC X OCCURS 17 TIMES.               02100024
+                                                                        02110024
+       PROCEDURE DIVISION USING L-PARM.                                 02120024
+      *==============================================================*  02130024
+           PERFORM T-INIT THRU T-INIT-F.                                02140024
+      *                                                                 02150024
+           PERFORM T-link-request                                       02160024
+              THRU T-link-request-f.                                    02170024
+      *                                                                 02180024
+           PERFORM T-ctrle-link                                         02190024
+              THRU T-ctrle-link-f.                                      02200024
+      *                                                                 02210024
+           IF b-continue-ok THEN                                        02211024
+              PERFORM T-connexion-cics                                  02212024
+                 THRU T-connexion-cics-f                                02212124
+           END-IF.                                                      02212224
+      *                                                                 02212324
+           IF b-continue-ok THEN                                        02212424
+              PERFORM t-prog-cics                                       02212524
+                 THRU t-prog-cics-f                                     02212624
+           END-IF.                                                      02212724
+      *                                                                 02212824
+           IF b-continue-ok THEN                                        02212924
+              PERFORM T-deconnexion-cics                                02213024
+                 THRU T-deconnexion-cics-f                              02213124
+           END-IF.                                                      02213224
+           PERFORM T-FIN  THRU T-FIN-F.                                 02213324
+           STOP RUN.                                                    02213424
+      *==============================================================*  02213524
+       T-INIT.                                                          02213624
+           DISPLAY '========================================'.          02213724
+           DISPLAY 't-init'.                                            02213824
+           OPEN OUTPUT FIMP.                                            02213924
+           SET b-continue-ok       TO TRUE.                             02214024
+           MOVE 'CICSTR01'         TO XCIS-SYS.                         02215024
+           MOVE SPACES             TO XCIS-USER.                        02216024
+                                                                        02217024
+           IF L-PARM-LG > 0 THEN                                        02218024
+              IF L-PARM-OCT (1) = ',' THEN                              02219024
+                 MOVE '      '     to FILL-APP                          02220024
+                 MOVE '        '   to MSG-SYSTEM                        02230024
+                 MOVE 1 TO I                                            02240024
+              ELSE                                                      02250024
+                 MOVE SPACES         TO XCIS-SYS                        02260024
+                 PERFORM TEST BEFORE                                    02270024
+                    VARYING I FROM 1 BY 1                               02280024
+                    UNTIL I > L-PARM-LG OR I > 8                        02290024
+                       OR L-PARM-OCT (I) = ','                          02300024
+                    MOVE L-PARM-OCT (I)                                 02310024
+                                   TO XCIS-sys-oct(I)                   02320024
+                 END-PERFORM                                            02330024
+                 MOVE XCIS-SYS     TO MSG-SYSTEM                        02340024
+              END-IF                                                    02350024
+           END-IF.                                                      02360024
+           IF L-PARM-OCT (I) = ',' THEN                                 02370024
+              ADD 1 TO I                                                02380024
+           ELSE                                                         02390024
+              MOVE '       '       to FILL-USER                         02400024
+              MOVE '        '      to MSG-USERID                        02410024
+           END-IF.                                                      02420024
+                                                                        02430024
+           IF L-PARM-LG >= I THEN                                       02440024
+              MOVE 1 TO IY                                              02450024
+              PERFORM TEST BEFORE                                       02460024
+                 VARYING IX FROM I BY 1                                 02470024
+                 UNTIL IX > L-PARM-LG OR IX > 17                        02480024
+                 MOVE L-PARM-OCT (IX)                                   02490024
+                                   TO XCIS-USER-OCT(IY)                 02500024
+                 ADD 1 TO IY                                            02510024
+              END-PERFORM                                               02520024
+              MOVE XCIS-USER       TO MSG-USERID                        02530024
+           END-IF.                                                      02540024
+                                                                        02550024
+           IF L-PARM-LG = 0                                             02560024
+           THEN MOVE ' None' to FILL-APP.                               02570024
+                                                                        02580024
+           IF XCIS-USER = SPACES                                        02590024
+           THEN MOVE LOW-VALUES TO XCIS-USER.                           02600024
+      *                                                                 02610024
+           SET b-continue-ok TO TRUE.                                   02620024
+       T-INIT-F.                                                        02630024
+           EXIT.                                                        02640024
+      *                                                                 02641024
+      *==============================================================*  02642024
+      *                                                              *  02643024
+      *   t-link-requet  use an EXEC level EXCI call to invoke the   *  02644024
+      *                programme XCIS-PROGRAM         on the target  *  02645024
+      *                CICS system to check the state of the target  *  02646024
+      *                file, and, if it exists, will set the file to *  02646124
+      *                a browsable state.  The CALL-TYPE (1st) slot  *  02646224
+      *                of the Commarea will be used to return        *  02646324
+      *                information as to how successful the call was.*  02646424
+      *                If the call or the server fails in any way,   *  02646524
+      *                all further processing is aborted.            *  02646624
+      *                                                              *  02646724
+      *==============================================================*  02646824
+       T-link-request.                                                  02646924
+           DISPLAY '========================================'.          02647024
+           DISPLAY 't-link-request'.                                    02647124
+           WRITE FIMP-FD FROM MSG-BLC.                                  02647224
+           WRITE FIMP-FD FROM MSG-TIA.                                  02647324
+           WRITE FIMP-FD FROM MSG-VID.                                  02647424
+           WRITE FIMP-FD FROM MSG-parameters.                           02647524
+           WRITE FIMP-FD FROM MSG-VID.                                  02647624
+           WRITE FIMP-FD FROM MSG-EXEC-LEVEL-PROC.                      02647724
+      *                                                                 02647824
+      *  Set up the xcis-comm for transmission.                         02647924
+      *                                                                 02648024
+           MOVE XCIS-FILE TO COMM-FILE.                                 02648124
+           WRITE FIMP-FD FROM msg-SETTING-LEVEL-CALL.                   02648224
+      *                                                                 02648324
+      *  Perform the Link Request;                                      02648424
+      *                                                                 02648524
+           MOVE W-FONCTION-INIT TO COMM-FONCTION.                       02648624
+           WRITE FIMP-FD FROM xcis-comm.                                02648724
+           EXEC CICS LINK PROGRAM(XCIS-PROGRAM)                         02648824
+                          TRANSID(XCIS-TRANSID)                         02648924
+                          APPLID(XCIS-SYS)                              02649024
+                          COMMAREA(XCIS-COMM)                           02649124
+                          LENGTH(XCIS-COMM-LNK-18)                      02649224
+                          DATALENGTH(XCIS-DATA-LNK-18)                  02649324
+                          RETCODE(EXCI-EXEC-RETURN-CODE)                02649424
+                          SYNCONRETURN                                  02649524
+           END-EXEC.                                                    02649624
+           WRITE FIMP-FD FROM xcis-comm.                                02649724
+       T-link-request-f.                                                02649824
+           EXIT.                                                        02649924
+       T-ctrle-link.                                                    02650024
+           DISPLAY '========================================'.          02650124
+           DISPLAY 't-ctrle-link'.                                      02650224
+           IF EXEC-RESP IS EQUAL   TO ZERO THEN                         02650324
+              PERFORM t-test-resp  THRU t-test-resp-f                   02650424
+           ELSE                                                         02650524
+              PERFORM t-link-ko    THRU t-link-ko-f                     02650624
+              SET b-continue-ko    TO TRUE                              02650724
+              MOVE EXEC-RESP       TO SAVED-RESPONSE                    02650824
+           END-IF.                                                      02650924
+       T-ctrle-link-f.                                                  02651024
+           EXIT.                                                        02651124
+      *                                                                 02651224
+       T-test-resp.                                                     02651324
+           DISPLAY '========================================'.          02651424
+           DISPLAY 't-test-resp'.                                       02651524
+      *                                                                 02651624
+           WRITE FIMP-FD           FROM MSG-LINK-REQUEST-OK.            02651724
+           MOVE COMM-FONCTION      TO w-rc.                             02651824
+           WRITE FIMP-FD           FROM MSG-SERVER-REPONSE.             02651924
+      *                                                                 02652024
+           EVALUATE TRUE                                                02652124
+           WHEN b-rc-BROWSE                                             02652224
+              WRITE FIMP-FD        FROM MSG-FILE-BROWSABLE              02652324
+              SET b-continue-ok    TO TRUE                              02652424
+           WHEN b-rc-NOBRWS                                             02652524
+              WRITE FIMP-FD        FROM MSG-FILE-NOTINITIALISED         02652624
+              WRITE FIMP-FD        FROM MSG-message-receive             02652724
+              SET b-continue-ko    TO TRUE                              02652824
+              MOVE 16              TO SAVED-RESPONSE                    02652924
+           WHEN b-rc-NOFILE                                             02653024
+              WRITE FIMP-FD        FROM MSG-FILE-NOTFOUND               02653124
+              WRITE FIMP-FD        FROM MSG-message-receive             02653224
+              SET b-continue-ko    TO TRUE                              02653324
+              MOVE 16              TO SAVED-RESPONSE                    02653424
+           WHEN OTHER                                                   02653524
+              WRITE FIMP-FD        FROM MSG-SERIOUS-ERROR               02653624
+              WRITE FIMP-FD        FROM MSG-message-receive             02653724
+              SET b-continue-ko    TO TRUE                              02653824
+              MOVE 16              TO SAVED-RESPONSE                    02653924
+           END-EVALUATE.                                                02654024
+           MOVE  EXEC-RESP         TO msg-edit-resp.                    02654124
+           MOVE  EXEC-RESP2        TO msg-edit-resp2.                   02654224
+           MOVE  SPACES            TO msg-edit-exci5-8.                 02654324
+           MOVE  EXEC-ABCODE       TO msg-edit-exci1-4.                 02654424
+           WRITE FIMP-FD           FROM msg-edit-rcs.                   02654524
+       T-test-resp-f.                                                   02654624
+           EXIT.                                                        02654724
+      *                                                                 02654824
+       t-link-ko.                                                       02654924
+           DISPLAY '========================================'.          02655024
+           DISPLAY 't-link-ko'.                                         02655124
+           WRITE FIMP-FD           FROM MSG-LINK-REQUEST-KO.            02655224
+           MOVE  EXEC-RESP         TO msg-edit-resp.                    02655324
+           MOVE  EXEC-RESP2        TO msg-edit-resp2.                   02655424
+           MOVE  SPACES            TO msg-edit-exci5-8.                 02655524
+           MOVE  EXEC-ABCODE       TO msg-edit-exci1-4.                 02655624
+           WRITE FIMP-FD           FROM msg-edit-rcs.                   02655724
+           IF EXEC-MSG-PTR NOT = NULLS THEN                             02655824
+              WRITE FIMP-FD        FROM MSG-message-receive             02655924
+              WRITE FIMP-FD        FROM MSG-VID                         02656024
+              SET ADDRESS OF l-EXEC-MSG TO EXEC-MSG-PTR                 02656124
+              MOVE SPACES          TO OUT-REC                           02656224
+              PERFORM TEST BEFORE                                       02656324
+                 VARYING I FROM 1 BY 1                                  02656424
+                 UNTIL I > EXEC-MSG-LEN                                 02656524
+                     MOVE l-EXEC-MSG-OCT (I)                            02656624
+                                   TO OUT-rec-oct (I)                   02656724
+              END-PERFORM                                               02656824
+              WRITE FIMP-FD        FROM OUT-REC                         02656924
+              WRITE FIMP-FD        FROM MSG-VID                         02657024
+           END-IF.                                                      02657124
+           WRITE FIMP-FD           FROM MSG-message-receive.            02657224
+       t-link-ko-f.                                                     02657324
+           EXIT.                                                        02657424
+      *                                                                 02657524
+      *==============================================================*  02657624
+      *                                                              *  02657724
+      *    (Initialisation USER, allocation pipe, open pipe)         *  02657824
+      *                                                              *  02657924
+      *==============================================================*  02658024
+       t-connexion-cics.                                                02658124
+           DISPLAY '========================================'.          02658224
+           DISPLAY 't-connexion-cics'.                                  02658324
+      *                                                                 02658424
+           WRITE FIMP-FD           FROM MSG-VID.                        02658524
+           WRITE FIMP-FD           FROM MSG-call-level-process.         02658624
+      *                                                                 02658724
+      *  Perform the Initialise User Call.                              02658824
+      *                                                                 02658924
+           CALL 'DFHXCIS' USING VERSION-1                               02659024
+                                EXCI-RETURN-CODE                        02659124
+                                xcis-fct-user                           02659224
+                                INIT-USER                               02659324
+                                xcis-fct-appli.                         02659424
+           WRITE FIMP-FD FROM MSG-INIT-USER-OK.                         02659524
+      *                                                                 02659624
+      *  Perform the Allocate Pipe Call.                                02659724
+      *                                                                 02659824
+           CALL 'DFHXCIS' USING VERSION-1                               02659924
+                                EXCI-RETURN-CODE                        02660024
+                                xcis-fct-user                           02660124
+                                ALLOCATE-PIPE                           02660224
+                                xcis-fct-pipe                           02660324
+                                XCIS-SYS                                02660424
+                                SPECIFIC-PIPE.                          02660524
+           WRITE FIMP-FD           FROM MSG-ALLOC-PIPE-OK.              02660624
+      *                                                                 02660724
+      *  Perform the Open Pipe Call.                                    02660824
+      *                                                                 02660924
+           CALL 'DFHXCIS' USING VERSION-1                               02661024
+                                EXCI-RETURN-CODE                        02661124
+                                xcis-fct-user                           02661224
+                                OPEN-PIPE                               02661324
+                                xcis-fct-pipe.                          02661424
+           WRITE FIMP-FD           FROM MSG-OPEN-PIPE-OK.               02661524
+      *                                                                 02661624
+      *  Check to see if the Pipe has been successfully allocated       02661724
+      *  and opened.  If not, then the DPL request will not work,       02661824
+      *  so we might as well abort now, and attempt to back out         02661924
+      *  the connexion building.   We could attempt to perform an       02662024
+      *  EXEC link again to close the target file, but if a pipe        02662124
+      *  could not be successfully set up manually, there shoud be      02662224
+      *  no reason to believe that this would work, so don't try it.    02662324
+      *                                                                 02662424
+           IF EXCI-RESPONSE NOT = ZERO THEN                             02662524
+              PERFORM t-connexion-ko                                    02662624
+                 THRU t-connexion-ko-f                                  02662724
+           END-IF.                                                      02662824
+       t-connexion-cics-f.                                              02662924
+           EXIT.                                                        02663024
+       t-connexion-ko.                                                  02663124
+           WRITE FIMP-FD           FROM MSG-connect-ko.                 02663224
+           MOVE  EXCI-RESPONSE     TO msg-edit-resp.                    02663324
+           MOVE  EXCI-REASON       TO msg-edit-resp2.                   02663424
+           MOVE  EXCI-SUB-REASON1  TO msg-edit-exci.                    02663524
+           WRITE FIMP-FD           FROM msg-edit-rcs.                   02663624
+           WRITE FIMP-FD           FROM MSG-message-receive.            02663724
+           MOVE EXCI-RESPONSE      TO SAVED-RESPONSE.                   02663824
+           SET b-continue-ko       TO TRUE.                             02663924
+       t-connexion-ko-f.                                                02664024
+           EXIT.                                                        02664124
+      *                                                                 02664224
+      *           ex{cution programme CICS                              02664324
+      *                                                                 02664424
+       t-prog-cics.                                                     02664524
+           WRITE FIMP-FD           FROM MSG-connect-ok                  02664624
+           WRITE FIMP-FD           FROM MSG-target-file                 02664724
+           WRITE FIMP-FD           FROM MSG-VID                         02664824
+           WRITE FIMP-FD           FROM MSG-TOP-FILE                    02664924
+      *                                                                 02665024
+           SET b-continue-ok       TO TRUE.                             02665124
+           PERFORM t-appel-prog-cics                                    02665224
+              THRU t-appel-prog-cics-f                                  02665324
+              UNTIL b-continue-stop.                                    02665424
+      *                                                                 02665524
+       t-prog-cics-f.                                                   02665624
+           EXIT.                                                        02665724
+      *==============================================================*  02665824
+      *                                                              *  02665924
+      *   appel programme CICS                                       *  02666024
+      *                  COMM-FONCTION 2 du programme XCIS-PROGRAM   *  02666124
+      *                  Il fournit l'enregistrement demand{ du      *  02666224
+      *                  fichier CICS, la cl{ de l'enregistrement    *  02666324
+      *                  jusqu'@ la fin de fichier                   *  02666424
+      *                  L'enregistrement demand{ est {crit sur le   *  02666524
+      *                  FIMP.                                       *  02666624
+      *                                                              *  02666724
+      *==============================================================*  02666824
+       t-appel-prog-cics.                                               02666924
+           DISPLAY '========================================'.          02667024
+           DISPLAY 't-appel-prog-cics'.                                 02667124
+      *                                                                 02667224
+           SET ADDRESS OF l-null-ptr TO NULLS.                          02667324
+      *                                                                 02667424
+      *  Set up the call, and perform the DPL request.                  02667524
+      *                                                                 02667624
+           MOVE W-FONCTION-read    TO COMM-FONCTION.                    02667724
+           DISPLAY '*' COMM-FONCTION '*' XCIS-COMM '*' XCIS-PROGRAM.    02667824
+           CALL 'DFHXCIS' USING VERSION-1                               02667924
+                                EXCI-RETURN-CODE                        02668024
+                                xcis-fct-user                           02668124
+                                DPL-REQUEST                             02668224
+                                xcis-fct-pipe                           02668324
+                                XCIS-PROGRAM                            02668424
+                                XCIS-COMM                               02668524
+                                XCIS-COMM-DPL-98                        02668624
+                                XCIS-DATA-DPL-18                        02668724
+                                XCIS-TRANSID                            02668824
+                                l-null-ptr                              02668924
+                                XCIS-USER                               02669024
+                                EXCI-DPL-RETAREA                        02669124
+                                SYNCONRETURN.                           02669224
+           DISPLAY '*' EXCi-RESPONSE '*' EXCI-DPL-RESP                  02669324
+                   '*' w-rc                                             02669424
+           DISPLAY '*' COMM-FONCTION '*' XCIS-COMM '*' XCIS-PROGRAM.    02669524
+      *                                                                 02669624
+           PERFORM t-test-appel    THRU t-test-appel-f.                 02669724
+           EVALUATE TRUE                                                02669824
+           WHEN b-continue-ok                                           02669924
+              WRITE FIMP-FD        FROM COMM-RECORD                     02670024
+           WHEN b-continue-stop                                         02671024
+              WRITE FIMP-FD        fROM MSG-END-FILE                    02672024
+              WRITE FIMP-FD        FROM MSG-VID                         02673024
+           END-EVALUATE.                                                02674024
+       t-appel-prog-cics-f.                                             02675024
+           EXIT.                                                        02675124
+       t-test-appel.                                                    02675224
+           DISPLAY '========================================'.          02675324
+           DISPLAY 't-test-appel'.                                      02675424
+      *                                                                 02675524
+      *  Check how successful the call was.  If it has worked, then     02675624
+      *  we have a record on the XCIS-COMM to be output to the          02675724
+      *  SYSPRINT log.                                                  02675824
+      *                                                                 02675924
+           MOVE COMM-FONCTION      TO w-rc.                             02676024
+           EVALUATE TRUE                                                02676124
+           WHEN EXCI-RESPONSE = ZERO                                    02676224
+              AND EXCI-DPL-RESP NOT = ZERO                              02676324
+              WRITE FIMP-FD        FROM MSG-dpl-request-ko              02676424
+              WRITE FIMP-FD        FROM MSG-dpl-return                  02676524
+              MOVE EXCI-DPL-RESP   TO msg-edit-resp                     02676624
+              MOVE EXCI-DPL-RESP2  TO msg-edit-resp2                    02676724
+              MOVE SPACES          TO msg-edit-exci5-8                  02676824
+              MOVE EXCI-DPL-ABCODE TO msg-edit-exci1-4                  02676924
+              WRITE FIMP-FD        FROM msg-edit-rcs                    02677024
+              WRITE FIMP-FD        FROM MSG-message-receive             02677124
+              SET b-continue-ko    TO TRUE                              02677224
+              MOVE EXCI-DPL-RESP   TO SAVED-RESPONSE                    02677324
+           WHEN EXCI-RESPONSE = ZERO                                    02677424
+              AND EXCI-DPL-RESP = ZERO                                  02677524
+              AND b-rc-ERROR                                            02677624
+              WRITE FIMP-FD        FROM MSG-SERVER-REPONSE              02677724
+              WRITE FIMP-FD        FROM MSG-SERIOUS-ERROR               02677824
+              SET b-continue-ko    TO TRUE                              02677924
+              MOVE 16              TO SAVED-RESPONSE                    02678024
+           WHEN EXCI-RESPONSE = ZERO                                    02679024
+              AND EXCI-DPL-RESP = ZERO                                  02679124
+              AND b-rc-EOF                                              02679224
+              SET b-continue-stop  TO TRUE                              02679324
+           WHEN EXCI-RESPONSE = ZERO                                    02679424
+              AND EXCI-DPL-RESP = ZERO                                  02679524
+              AND NOT b-rc-ERROR                                        02679624
+              AND NOT b-rc-EOF                                          02679724
+              SET b-continue-OK    TO TRUE                              02679824
+           WHEN EXCI-RESPONSE NOT = ZERO                                02679924
+              WRITE FIMP-FD        FROM MSG-dpl-request-ko              02680024
+              WRITE FIMP-FD        FROM MSG-link-return                 02680124
+              MOVE  EXCI-RESPONSE  TO msg-edit-resp                     02680224
+              MOVE  EXCI-REASON    TO msg-edit-resp2                    02680324
+              MOVE  EXCI-SUB-REASON1 TO msg-edit-exci                   02680424
+              WRITE FIMP-FD        FROM msg-edit-rcs                    02680524
+              PERFORM t-trt-out-rec                                     02680624
+                 THRU t-trt-out-rec-f                                   02680724
+              WRITE FIMP-FD        FROM MSG-dpl-return                  02680824
+              MOVE  EXCI-DPL-RESP  TO msg-edit-resp                     02680924
+              MOVE  EXCI-DPL-RESP2 TO msg-edit-resp2                    02681024
+              MOVE  SPACES         TO msg-edit-exci5-8                  02682024
+              MOVE  EXCI-DPL-ABCODE TO msg-edit-exci1-4                 02682124
+              WRITE FIMP-FD        FROM msg-edit-rcs                    02682224
+              WRITE FIMP-FD        FROM MSG-message-receive             02682324
+              SET b-continue-ko    TO TRUE                              02682424
+              MOVE EXCI-RESPONSE   TO SAVED-RESPONSE                    02682524
+           END-EVALUATE.                                                02682624
+       t-test-appel-f.                                                  02682724
+           EXIT.                                                        02682824
+       t-trt-out-rec.                                                   02682924
+           DISPLAY '========================================'.          02683024
+           DISPLAY 't-trt-out-rec'                                      02683124
+      *                                                                 02683224
+           IF EXCI-MSG-PTR IS = NULLS THEN                              02683324
+              GO TO t-trt-out-rec-f                                     02683424
+           END-IF.                                                      02683524
+      *                                                                 02683624
+           WRITE FIMP-FD           FROM MSG-message-receive.            02683724
+           WRITE FIMP-FD           FROM MSG-VID.                        02683824
+           SET ADDRESS OF l-CALL-MSG TO EXCI-MSG-PTR.                   02683924
+           MOVE SPACES             TO OUT-REC.                          02684024
+           SUBTRACT 4              FROM l-CALL-MSG-LEN.                 02684124
+           PERFORM TEST BEFORE                                          02684224
+              VARYING I FROM 1 BY 1                                     02684324
+              UNTIL I > l-CALL-MSG-LEN                                  02684424
+              MOVE l-CALL-MSG-OCT (I) TO OUT-rec-oct (I)                02684524
+           END-PERFORM.                                                 02684624
+           WRITE FIMP-FD           FROM OUT-REC.                        02684724
+           WRITE FIMP-FD           FROM MSG-VID.                        02684824
+      *                                                                 02684924
+       t-trt-out-rec-f.                                                 02685024
+           EXIT.                                                        02685124
+      *==============================================================*  02685224
+      *                                                              *  02685324
+      *   deconnexion CICS                                           *  02685424
+      *               fonction 3 du XCIS-PROGRAMM)                   *  02685524
+      *               ferme le fichier                               *  02685624
+      *               ferme et d{salloue la connexion CICS           *  02685724
+      *                                                              *  02685824
+      *==============================================================*  02685924
+       t-deconnexion-cics.                                              02686024
+           DISPLAY '========================================'.          02686124
+           DISPLAY 't-deconnexion-cics'.                                02686224
+      *                                                                 02686324
+           MOVE W-FONCTION-CLOS    TO COMM-FONCTION.                    02686424
+           CALL 'DFHXCIS' USING VERSION-1                               02686524
+                                EXCI-RETURN-CODE                        02686624
+                                xcis-fct-user                           02686724
+                                DPL-REQUEST                             02686824
+                                xcis-fct-pipe                           02686924
+                                XCIS-PROGRAM                            02687024
+                                XCIS-COMM                               02687124
+                                XCIS-DATA-LNK-18                        02687224
+                                XCIS-DATA-LNK-18                        02687324
+                                XCIS-TRANSID                            02687424
+                                l-null-ptr                              02687524
+                                XCIS-USER                               02687624
+                                EXCI-DPL-RETAREA                        02687724
+                                SYNCONRETURN.                           02687824
+           WRITE FIMP-FD FROM MSG-close-dpl.                            02687924
+      *                                                                 02688024
+      *  Perform Close Pipe call.                                       02688124
+      *                                                                 02688224
+           CALL 'DFHXCIS' USING VERSION-1                               02688324
+                                EXCI-RETURN-CODE                        02688424
+                                xcis-fct-user                           02688524
+                                CLOSE-PIPE                              02688624
+                                xcis-fct-pipe.                          02688724
+           WRITE FIMP-FD           FROM MSG-close-pipe.                 02688824
+      *                                                                 02688924
+      *  Perform Deallocate Pipe call.                                  02689024
+      *                                                                 02689124
+           CALL 'DFHXCIS' USING VERSION-1                               02689224
+                                EXCI-RETURN-CODE                        02689324
+                                xcis-fct-user                           02689424
+                                DEALLOCATE-PIPE                         02689524
+                                xcis-fct-pipe.                          02689624
+           WRITE FIMP-FD           FROM MSG-dealloc-pipe.               02689724
+      *                                                                 02689824
+       t-deconnexion-cics-f.                                            02689924
+           EXIT.                                                        02690024
+      *                                                                 02690124
+      *              traitement fin                                     02690224
+      *                                                                 02690324
+       T-fin.                                                           02690424
+           DISPLAY '========================================'.          02690524
+           DISPLAY 't-fin'.                                             02690624
+           WRITE FIMP-FD           FROM MSG-VID.                        02690724
+           WRITE FIMP-FD           FROM MSG-end-exci.                   02690824
+           CLOSE FIMP.                                                  02690924
+           MOVE SAVED-RESPONSE     TO RETURN-CODE.                      02691024
+       T-fin-f.                                                         02691124
+           EXIT.                                                        02691224
+

@@ -1,0 +1,302 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. IM43BATC.
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT majcli ASSIGN TO majcli.
+           SELECT loging ASSIGN TO loging.
+       DATA DIVISION.
+       FILE SECTION.
+       FD  majcli
+           RECORDING MODE F.
+       01  maj-enr-fd PIC x(80).
+       FD  loging
+           RECORDING MODE F.
+       01  loging-enr-fd.
+           COPY cy43flog.
+       WORKING-STORAGE SECTION.
+      *    VARIABLES ERREUR DB2
+       77  messdb2 PIC x(40).
+       77  e-sqlcode PIC +9(9).
+      *    variables loging
+       77  message1 PIC x(80).
+       77  typetrait PIC xxxx.
+       01  w-current.
+           05 w-curr-date.
+              10 w-curr-aaaa    PIC 9(4).
+              10 w-curr-mm      PIC 9(2).
+              10 w-curr-jj      PIC 9(2).
+           05 FILLER REDEFINES  w-curr-date.
+              10 FILLER         PIC xx.
+              10 w-curr-amj     PIC 9(6).
+           05 w-curr-times.
+              10 w-curr-hh      PIC 9(2).
+              10 w-curr-mn      PIC 9(2).
+              10 w-curr-ss      PIC 9(2).
+              10 w-curr-ms      PIC 9(2).
+           05 FILLER REDEFINES  w-curr-times.
+              10 w-curr-hms     PIC 9(6).
+              10 FILLER         PIC xx.
+           05 w-curr-diff-gmt   PIC s9(4).
+       01  w-client             PIC x.
+           88 b-client-present  VALUE '1'.
+           88 b-client-absent   VALUE '0'.
+       01  maj-enr-wss.
+           EXEC SQL
+             INCLUDE cy43fmaj
+           END-EXEC.
+           EXEC SQL
+             INCLUDE cy43dcli
+           END-EXEC.
+           EXEC SQL
+             INCLUDE SQLCA
+           END-EXEC.
+       01 w-eofmaj     PIC x.
+          88 b-eofmaj-oui VALUE 'o'.
+          88 b-eofmaj-non VALUE 'n'.
+       01 w-trait PIC x.
+          88 b-trait-ajout VALUE 'a'.
+          88 b-trait-rejet VALUE 'x'.
+          88 b-trait-modification VALUE 'm'.
+          88 b-trait-suppression VALUE 's'.
+          88 b-trait-recopie VALUE 'r'.
+       LINKAGE SECTION.
+       01  iopcb.
+           02  terml-name      PIC  x(8).
+           02  io-reserve-ims  PIC  x(2).
+           02  io-status       PIC  x(2).
+           02  curr-date       PIC  x(4).
+           02  curr-time       PIC  x(4).
+           02  in-msn          PIC  x(4).
+           02  modname         PIC  x(8).
+           02  userid          PIC  x(8).
+       PROCEDURE DIVISION USING IOPCB.
+      *          DLITCBL
+           ENTRY 'DLITCBL' USING IOPCB.
+           DISPLAY 'im43batc deb'
+           PERFORM fonction-initiale THRU fonction-initiale-f.
+           DISPLAY 'im43batc trt'
+           PERFORM fonction-principale
+              THRU fonction-principale-f UNTIL b-eofmaj-oui.
+           DISPLAY 'im43batc fonction-fin'.
+           PERFORM fonction-fin THRU fonction-fin-f.
+           DISPLAY 'im43batc goback'.
+           GOBACK.
+       fonction-initiale.
+           MOVE function current-date TO w-current.
+           SET b-eofmaj-non TO TRUE.
+           OPEN INPUT majcli.
+           OPEN OUTPUT loging.
+       fonction-initiale-f.
+           EXIT.
+       fonction-arret-programme.
+           MOVE sqlcode TO e-sqlcode.
+           DISPLAY 'im43batc ' messdb2 ' : -' e-sqlcode '-'
+           PERFORM fonction-fin THRU fonction-fin-f.
+           GOBACK.
+       fonction-arret-programme-f.
+           EXIT.
+       fonction-principale.
+           PERFORM fonction-lecture-majcli
+              THRU fonction-lecture-maj-f
+           IF NOT b-eofmaj-oui
+              PERFORM fonction-lecture-client
+                 THRU fonction-lecture-client-f
+              PERFORM fonction-choix-trait
+                 THRU fonction-choix-trait-f
+              PERFORM fonction-trait
+                 THRU fonction-trait-f
+           END-IF.
+       fonction-principale-f.
+           EXIT.
+       fonction-choix-trait.
+           DISPLAY 'im43batc maj : ' maj-numb
+                   ' client : ' client-numb.
+           EVALUATE TRUE
+           WHEN b-client-absent
+                AND maj-typemaj NOT = 'A'
+              SET b-trait-rejet TO TRUE
+           WHEN b-client-present
+                AND maj-typemaj NOT = 'S'
+                AND maj-typemaj NOT = 'M'
+              SET b-trait-rejet TO TRUE
+           WHEN b-client-absent
+                AND maj-typemaj = 'A'
+              SET b-trait-ajout TO TRUE
+           WHEN b-client-present
+                AND maj-typemaj = 'M'
+              SET b-trait-modification TO TRUE
+           WHEN b-client-present
+                AND maj-typemaj = 'S'
+              SET b-trait-suppression TO TRUE
+           END-EVALUATE.
+       fonction-choix-trait-f.
+           EXIT.
+       fonction-trait.
+           EVALUATE TRUE
+           WHEN b-trait-ajout
+               PERFORM fonction-ajout-client
+                  THRU fonction-ajout-client-f
+           WHEN b-trait-modification
+               PERFORM fonction-modification-client
+                  THRU fonction-modification-client-f
+           WHEN b-trait-suppression
+               PERFORM fonction-suppression-client
+                  THRU fonction-suppression-client-f
+           WHEN b-trait-rejet
+               PERFORM fonction-rejet
+                  THRU fonction-rejet-f
+           END-EVALUATE.
+       fonction-trait-f.
+           EXIT.
+       fonction-ajout-client.
+           PERFORM fonction-ajouter-client
+              THRU fonction-ajouter-client-f.
+           MOVE 'ajout de la ligne : ' TO message1.
+           MOVE 'add' TO typetrait.
+           PERFORM fonction-ecriture-loging
+              THRU fonction-ecriture-loging-f.
+       fonction-ajout-client-f.
+           EXIT.
+       fonction-ajouter-client.
+           EXEC SQL
+             INSERT INTO client
+             (stat,numb,name,addrx,phone,datex,amount,comment)
+             values(:maj-typemaj,
+                    :maj-numb,
+                    :maj-name,
+                    :maj-addrx,
+                    :maj-phone,
+                    :maj-datex,
+                    :maj-amount,
+                    :maj-comment)
+           END-EXEC.
+           IF sqlcode NOT = 0 then
+             MOVE 'insert : erreur db2 : ' TO messdb2
+             PERFORM fonction-arret-programme
+                THRU fonction-arret-programme-f
+           END-IF.
+       fonction-ajouter-client-f.
+           EXIT.
+       fonction-modification-client.
+           IF maj-name NOT = spaces
+              MOVE maj-name TO client-name.
+           IF maj-addrx NOT = spaces
+              MOVE maj-addrx TO client-addrx.
+           IF maj-phone NOT = spaces
+              MOVE maj-phone TO client-phone.
+           IF maj-datex NOT = spaces
+              MOVE maj-datex TO client-datex.
+           IF maj-amount NOT = spaces
+              MOVE maj-amount TO client-amount.
+           IF maj-comment NOT = spaces
+              MOVE maj-comment TO client-comment.
+           PERFORM fonction-remplacer-client
+              THRU fonction-remplacer-client-f.
+           MOVE 'mod' TO typetrait.
+           MOVE 'modification de la ligne : ' TO message1.
+           PERFORM fonction-ecriture-loging
+              THRU fonction-ecriture-loging-f.
+       fonction-modification-client-f.
+           EXIT.
+       fonction-remplacer-client.
+           DISPLAY 'im43batc update : ' maj-numb.
+           DISPLAY 'im43batc update : ' maj-enr-wss.
+           DISPLAY 'im43batc update : ' stclient.
+           EXEC SQL
+             UPDATE client
+                SET stat =    :client-stat,
+                    name =    :client-name,
+                    addrx =   :client-addrx,
+                    phone =   :client-phone,
+                    datex =   :client-datex,
+                    amount =  :client-amount,
+                    comment = :client-comment
+             WHERE numb = :maj-numb
+           END-EXEC.
+           IF sqlcode NOT = 0 then
+             MOVE 'replace : erreur db2 : ' TO messdb2
+             PERFORM fonction-arret-programme
+                THRU fonction-arret-programme-f
+           END-IF.
+       fonction-remplacer-client-f.
+           EXIT.
+       fonction-suppression-client.
+           PERFORM fonction-supprimer-client
+              THRU fonction-supprimer-client-f.
+           MOVE 'suppression de la ligne : ' TO message1.
+           MOVE 'del' TO typetrait.
+           PERFORM fonction-ecriture-loging
+              THRU fonction-ecriture-loging-f.
+       fonction-suppression-client-f.
+           EXIT.
+       fonction-supprimer-client.
+           DISPLAY 'im43batc delete : ' maj-numb.
+           EXEC SQL
+             delete from client
+             where numb = :maj-numb
+           END-EXEC.
+           IF sqlcode NOT = 0  then
+             MOVE 'delete : erreur db2 : ' TO messdb2
+             PERFORM fonction-arret-programme
+                THRU fonction-arret-programme-f
+           END-IF.
+       fonction-supprimer-client-f.
+           EXIT.
+       fonction-rejet.
+           MOVE 'rejet de la mise a jour : ' TO message1.
+           MOVE 'rej' TO typetrait.
+           PERFORM fonction-ecriture-loging
+              THRU fonction-ecriture-loging-f.
+       fonction-rejet-f.
+           EXIT.
+       fonction-lecture-majcli.
+            read majcli
+            at end
+              SET b-eofmaj-oui TO TRUE
+            NOT at end
+              MOVE maj-enr-fd TO maj-enr-wss
+            END-read.
+       fonction-lecture-maj-f.
+           EXIT.
+       fonction-lecture-client.
+           EXEC SQL
+             SELECT * INTO :stclient
+             FROM client
+             WHERE numb = :maj-numb
+           END-EXEC.
+           IF sqlcode = 0 then
+              SET b-client-present TO TRUE
+           else
+              IF sqlcode = +100 then
+                 SET b-client-absent TO TRUE
+              else
+                 MOVE 'read : erreur db2 : ' TO messdb2
+                 PERFORM fonction-arret-programme
+                    THRU fonction-arret-programme-f
+              END-IF
+           END-IF.
+           DISPLAY 'im43batc select : ' maj-numb.
+           DISPLAY 'im43batc select : ' stclient.
+       fonction-lecture-client-f.
+           EXIT.
+       fonction-ecriture-loging.
+           MOVE w-curr-amj TO loging-day.
+           MOVE w-curr-hms TO loging-time.
+           MOVE typetrait  TO loging-terml.
+           MOVE message1   TO loging-enr-fd.
+           WRITE loging-enr-fd.
+           MOVE w-curr-amj TO loging-day.
+           MOVE w-curr-hms TO loging-time.
+           MOVE typetrait  TO loging-terml.
+           MOVE maj-enr-wss TO loging-enr-fd.
+           WRITE loging-enr-fd.
+       fonction-ecriture-loging-f.
+            EXIT.
+       fonction-fin.
+           CLOSE majcli
+                 loging.
+       fonction-fin-f.
+            EXIT.
+

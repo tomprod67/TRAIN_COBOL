@@ -1,0 +1,743 @@
+      CBL CICS('SP,COBOL2,NOCBLCARD')
+      *****************************************************************
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. CI43CXCS.
+       AUTHOR.
+       INSTALLATION.
+       DATE-WRITTEN.
+       DATE-COMPILED.
+      *
+      ******************************************************************
+      *
+      * MODULE NAME = CI43CXCS
+      *
+      * DESCRIPTIVE NAME = Batch serveur program.
+      *
+      *
+      * FUNCTION =  CICS Application server program to initialise, browse,
+      *       update and close a file as requested by the invoking
+      *       Sample Batch Client Program via EXCI DPL calls.
+      *
+      *-----------------------------------------------------------------
+      *
+      * ENTRY POINT = CI43CXCS
+      *
+      *     PURPOSE = All Functions.
+      *
+      *     LINKAGE = Appel par LINK
+      *
+      *     INPUT = Le programme reçoit la commarea
+      *
+      *             Bytes;    Datatype;   Parameter;
+      *
+      *              0-3      Fullword    Type appel
+      *              4-11      Char(8)    nom cics du fichier
+      *              12-17     Char(6)    Cl{
+      *              18-97     Char(80)   enregistrement fichier
+      *
+      *     OUTPUT = Le programme r{pond par la commarea en fonction
+      *              du type d appel
+      *
+      *     EXIT-NORMAL = Le programme rend la main au programme appelant
+      *                   via EXEC CICS RETURN.
+      *                   Code retour rendu via la commarea :
+      *
+      *                   0         File is Browsable/read was successfu
+      *                   4         File is not Browsable.
+      *                   8         End File.
+      *                   12        File not found.
+      *                   16        Serious error.
+      *
+      *     EXIT-ERROR =  The module ne g{n{re pas d'ABENDS.
+      *
+      *-----------------------------------------------------------------
+      *
+      *     ROUTINES = EXEC CICS RETURN
+      *                EXEC CICS SET
+      *                EXEC CICS INQUIRE
+      *                EXEC CICS STARTBR
+      *                EXEC CICS READNEXT
+      *                EXEC CICS READ
+      *                EXEC CICS UPDATE
+      *                EXEC CICS ENDBR
+      *
+      *-----------------------------------------------------------------
+      *
+      * DESCRIPTION:
+      *
+      *   Ce programme est appel{ par un programme Batch et r{alise
+      *   3 tâches diff{rentes :
+      *
+      *   INITBR :   appel initial (type appel = 1)
+      *              il v{rifie l'acc}s au fichier en lecture et renvoie
+      *              le code retour.
+      *
+      *   READFILE:  appel pour lecture s{quentielle. Il renvoie l'enre
+      *              gistrement suivant et indique la fin de fichier.
+      *
+      *   WRTFILE:   Appel pour mise @ jour d'enregistrement
+      *
+      *   CLOSEFILE: Appel pour fermeture fichier.
+      *
+      *-----------------------------------------------------------------
+      *
+      * CHANGE ACTIVITY :
+      **
+      ******************************************************************
+      *
+       ENVIRONMENT DIVISION.
+       DATA DIVISION.
+      *
+       WORKING-STORAGE SECTION.
+      *
+      *    STORE EYE CATCHER DETAILS TO AID DUMP READING
+      *
+       01  WS-DEBUG-DETAILS.
+           05  FILLER                        PIC X(32)
+                 VALUE 'CI43CXCS ----WORKING STORAGE  '.
+           05  FILLER                        PIC X    VALUE SPACE.
+           05  WS-DEBUG-COMMAREA-ADDR        USAGE IS POINTER.
+      *
+       01  FILLER.
+      *
+      * This field is used for interfacing with the
+      * ABEND/Error Handler program in the suite.
+      *
+           05  WS-PROGRAM-NAME               PIC X(8) VALUE SPACES.
+           05  ABEND-PROGRAM                 PIC X(8) VALUE 'CI43TERR'.
+      *
+      * Store of EIBRESP and EIBRESP2 set up in each EXEC CICS statement
+      *
+           05  RESPONSE                      PIC S9(8) COMP VALUE 0.
+           05  REASON-CODE                   PIC S9(8) COMP VALUE 0.
+           05  OPEN-FLAG                     PIC S9(8) COMP VALUE 0.
+           05  BRZ-FLAG                      PIC S9(8) COMP VALUE 0.
+      *
+      * The EIBFN is defined as character but the error interface
+      * expects a numeric value.
+      *
+           05  WS-WORK-EIBFN                   PIC 9(4) COMP VALUE ZERO.
+           05  WS-WORK-EIBFN-X REDEFINES WS-WORK-EIBFN PIC X(2).
+      *
+      * This field is used to keep track of the results of the search.
+      *
+           05  WS-AVAILABILITY-IND             PIC X.
+               88  SOME-AVAILABLE              VALUE 'Y'.
+               88  NONE-AVAILABLE              VALUE 'N'.
+      *
+      * These fields are used to keep track of the search
+      * criteria and for setting the bounds of the search
+      * against both surname and forename.
+      *
+           05  WS-PASSED-NAMES.
+               10  WS-PASSED-SNAME             PIC X(18) VALUE SPACES.
+               10  WS-PASSED-FNAME             PIC X(12) VALUE SPACES.
+           05  WS-LIMIT-NAMES.
+               10  WS-BROWSE-SNAME             PIC X(18) VALUE SPACES.
+               10  WS-MAX-SNAME                PIC X(18) VALUE SPACES.
+               10  WS-MIN-FNAME                PIC X(12) VALUE SPACES.
+               10  WS-MAX-FNAME                PIC X(12) VALUE SPACES.
+      *
+      * This field is used to keep track of the number of
+      * records found which match the search criteria.
+      *
+           05  WS-RECORDS-READ                 PIC 9(4) COMP VALUE ZERO.
+      *
+      * This field is used to indicate whether input data is valid or
+      * invalid
+      *
+           05  WS-REQUEST-VALIDITY             PIC X.
+               88  VALID-REQUEST               VALUE 'Y'.
+               88  INVALID-REQUEST             VALUE 'N'.
+      *
+      * CODE  controle
+      *
+           05  WS-RET-TRT                      PIC S9(8) COMP.
+               88  RET-TRT-OK                  VALUE 0.
+               88  RET-TRT-KO                  VALUE 16.
+      *
+      * CODES RETOUR possible
+      *
+           05  WS-RET-CODE                     PIC S9(8) COMP.
+           05  WS-RET-BROWSE                   PIC S9(8) COMP
+                                               VALUE 0.
+           05  WS-RET-NOBROWSE                 PIC S9(8) COMP
+                                               VALUE 4.
+           05  WS-RET-EOF                      PIC S9(8) COMP
+                                               VALUE 8.
+           05  WS-RET-NOFILE                   PIC S9(8) COMP
+                                               VALUE 12.
+           05  WS-RET-ERROR                    PIC S9(8) COMP
+                                               VALUE 16.
+           05  WS-RET-NOTAUTH                  PIC S9(8) COMP
+                                               VALUE 20.
+      *
+      * The interface to the error handler program is described
+      * in a copy book in order to ensure correctness.
+      *
+      *
+      * Various values which you might wish to modify are placed in one
+      * copy book in order to make those sorts of changes more easily.
+      *
+       01  FILLER.
+           05  FILLER                          PIC X(36) VALUE
+               '********  FICHIERC COPYBOOK  *******'.
+           05   LRECL                          PIC S9(4) COMP VALUE 80.
+           05   LRECL-READ                     PIC S9(4) COMP.
+           05   DUMMY                          PIC x(80).
+      *
+      * The description of the account record is placed in a copy book.
+      * This area is used to read a record before placing it into the
+      * next available slot in the interface area.
+      *
+       01  COMM-CI43TERR.
+           COPY CY43TERR.
+      *
+       01  FILLER                              PIC X(36) VALUE
+              '********  LINKAGE SECTION   ********'.
+      *
+       EJECT.
+      *
+       LINKAGE SECTION.
+      *
+      * The interface to this program is described in
+      * a copy book in order to ensure consistency.
+      *
+       01  DFHCOMMAREA.
+           COPY CY43CSCO.
+      *
+       EJECT.
+      *
+       PROCEDURE DIVISION.
+      *
+       CXCS-MAIN SECTION.
+      *
+           SET WS-DEBUG-COMMAREA-ADDR TO ADDRESS OF DFHCOMMAREA.
+      *
+           DISPLAY 'CI43CXCS *' dfhcommarea.
+      *
+       CXCS-010.
+           DISPLAY 'CI43CXCS *  CXCS-010'.
+      *
+      * First we establish the ABEND handler in case unexpected
+      * errors arise, such as program inCXCSupts. The technique
+      * used here assumes a naming convention where the variable
+      * part of the program names is in the 8th position.
+      * This allows for changes to the names in case the provided
+      * names conflict with existing applications.
+      *
+      * ASSIGN returns system information to the program.
+      * This example returns the name of the current program
+      * to WS-PROGRAM-NAME.
+      *
+           EXEC CICS ASSIGN
+                     PROGRAM(WS-PROGRAM-NAME)
+                     NOHANDLE
+           END-EXEC.
+           MOVE WS-PROGRAM-NAME     TO COMM-PGMID.
+
+      *
+       CXCS-020.
+           EXIT.
+      *
+       CXCS-030.
+           DISPLAY 'CI43CXCS *  CXCS-030'.
+           IF CALL-TYPE = 1
+              PERFORM A-INITBRZ THRU END-A-INITBRZ
+           ELSE IF CALL-TYPE = 2
+              PERFORM B-READFILE THRU END-B-READFILE
+           ELSE IF CALL-TYPE = 3
+              PERFORM C-CLOSFILE THRU END-C-CLOSFILE
+           ELSE IF CALL-TYPE = 4
+              PERFORM D-WRITFILE THRU END-D-WRITFILE
+           ELSE MOVE 9999 TO WS-RET-CODE.
+      *
+       CXCS-040.
+           DISPLAY 'CI43CXCS *  CXCS-040'.
+           MOVE WS-RET-CODE TO CALL-TYPE.
+           EXEC CICS RETURN
+           END-EXEC.
+           GOBACK.
+      *
+       END-CXCS-MAIN.
+           EXIT.
+           EJECT.
+      *
+       A-INITBRZ SECTION.
+           DISPLAY 'CI43CXCS *  A-initbrz'.
+      *=====================================================================*
+      *                                                                     *
+      *   INITBRZ:                                                          *
+      *                                                                     *
+      *   Controle existence du fichier, autorisation en lecture et         *
+      *   fichier ouvert                                                ate.*
+      *                                                                     *
+      *=====================================================================*
+      *
+      *========================= ====================================== ====*
+      *   Positionnement handle for FILENOTFOUND condition                  *
+      *                             ERROR        condition.                 *
+      *=====================================================================*
+      *
+           SET RET-TRT-OK   TO TRUE.
+           MOVE WS-RET-BROWSE   TO WS-RET-CODE.
+           EXEC CICS HANDLE CONDITION
+                            FILENOTFOUND(A-ERR-FILE-NOT-FOUND)
+                            ERROR(A-ERR-FILE-ERROR)
+                            NOTAUTH(A-ERR-NOTAUTH)
+           END-EXEC.
+      *
+      *================================================================*
+      *   Test etat du fichier    - autorisation en lecture            *
+      *================================================================*
+      *
+           PERFORM A-CTR-FILE-AUTORISATION
+              THRU A-CTR-FILE-AUTORISATION-FIN.
+      *
+      *================================================================*
+      *   test ouverture fichier                                       *
+      *================================================================*
+      *
+           IF RET-TRT-OK
+              PERFORM A-CTR-FILE-OPEN
+                 THRU A-CTR-FILE-OPEN-FIN.
+           IF RET-TRT-OK
+              MOVE WS-RET-BROWSE   TO WS-RET-CODE
+              MOVE '000001'       TO RID-FIELD.
+           GO TO                  END-A-INITBRZ.
+      *
+       A-ERR-FILE-NOT-FOUND.
+           DISPLAY 'CI43CXCS *  A-ERR-FILE-NOT-FOUND'.
+      *=====================================================================*
+      *   File not found error handle exit.                                 *
+      *=====================================================================*
+      *
+           SET RET-TRT-KO         TO TRUE.
+           MOVE WS-RET-NOFILE     TO WS-RET-CODE.
+           PERFORM Z-ERROR-HANDLER.
+           GO TO                  END-A-INITBRZ.
+      *
+       A-ERR-FILE-ERROR.
+           DISPLAY 'CI43CXCS *  A-ERR-FILE-ERROR'.
+      *=====================================================================*
+      *   Serious error handle exit.                                        *
+      *=====================================================================*
+      *
+           SET RET-TRT-KO         TO TRUE.
+           MOVE WS-RET-ERROR      TO WS-RET-CODE.
+           PERFORM Z-ERROR-HANDLER.
+           GO TO                  END-A-INITBRZ.
+      *
+       A-ERR-NOTAUTH.
+           DISPLAY 'CI43CXCS *  A-ERR-NOTAUTH'.
+      *=====================================================================*
+      *   Serious error handle exit.                                        *
+      *=====================================================================*
+      *
+           SET RET-TRT-KO         TO TRUE.
+           MOVE WS-RET-NOTAUTH    TO WS-RET-CODE.
+           PERFORM Z-ERROR-HANDLER.
+           GO TO                  END-A-INITBRZ.
+      *
+      *================================================================*
+      *   Test etat du fichier    - autorisation en lecture            *
+      *================================================================*
+      *
+       A-CTR-FILE-AUTORISATION.
+           DISPLAY 'CI43CXCS *  A-CTR-FILE-AUTORISATION'.
+           PERFORM ZZ-INQUIRE-FILE-BROWSE
+              THRU ZZ-INQUIRE-FILE-BROWSE-FIN.
+           IF BRZ-FLAG NOT = DFHVALUE(BROWSABLE)
+              PERFORM ZZ-SET-FILE-CLOSED-WAIT
+                 THRU ZZ-SET-FILE-CLOSED-WAIT-FIN
+              PERFORM ZZ-SET-FILE-BROWSABLE
+                 THRU ZZ-SET-FILE-BROWSABLE-FIN
+              PERFORM ZZ-INQUIRE-FILE-BROWSE
+                 THRU ZZ-INQUIRE-FILE-BROWSE-FIN.
+           IF BRZ-FLAG NOT = DFHVALUE(BROWSABLE)
+              PERFORM Z-ERROR-HANDLER
+              MOVE WS-RET-NOBROWSE  TO WS-RET-CODE
+              SET RET-TRT-KO      TO TRUE.
+       A-CTR-FILE-AUTORISATION-FIN.
+           EXIT.
+      *
+      *================================================================*
+      *   test ouverture fichier                                       *
+      *================================================================*
+       A-CTR-FILE-OPEN.
+           DISPLAY 'CI43CXCS *  A-CTR-FILE-OPEN'.
+           PERFORM ZZ-INQUIRE-FILE-OPEN
+              THRU ZZ-INQUIRE-FILE-OPEN-FIN.
+           IF OPEN-FLAG NOT = DFHVALUE(OPEN)
+              PERFORM ZZ-SET-FILE-ENABLED
+                 THRU ZZ-SET-FILE-ENABLED-FIN
+              PERFORM ZZ-SET-FILE-OPEN
+                 THRU ZZ-SET-FILE-OPEN-FIN
+              PERFORM ZZ-INQUIRE-FILE-OPEN
+                 THRU ZZ-INQUIRE-FILE-OPEN-FIN.
+           IF OPEN-FLAG NOT = DFHVALUE(OPEN)
+              SET RET-TRT-KO      TO TRUE
+              MOVE WS-RET-NOBROWSE TO WS-RET-CODE
+              PERFORM Z-ERROR-HANDLER.
+       A-CTR-FILE-OPEN-FIN.
+           EXIT.
+       END-A-INITBRZ.
+           EXIT.
+           EJECT.
+      *
+       B-READFILE SECTION.
+      *=====================================================================*
+      *                                                                     *
+      *   READFILE                                                          *
+      *                                                                     *
+      *   Lecture enregistrement selon la cl{ et                            *
+      *   fourniture cl{ suivante                                       ate.*
+      *                                                                     *
+      *=====================================================================*
+      *
+      *=====================================================================*
+      *   Set error handle cases;                                           *
+      *=====================================================================*
+      *
+           DISPLAY 'CI43CXCS *  B-READFILE SECTION'.
+           SET RET-TRT-OK   TO TRUE.
+           EXEC CICS HANDLE CONDITION
+                     ENDFILE(B-FILE-ENDFILE)
+                     LENGERR(B-ERR-FILE-LONG)
+                     ERROR(B-ERR-FILE-ERROR)
+                     NOTAUTH(B-ERR-NOTAUTH)
+           END-EXEC.
+
+           PERFORM ZZ-FILE-STARTBR
+              THRU ZZ-FILE-STARTBR-FIN.
+           PERFORM ZZ-FILE-READNEXT
+              THRU ZZ-FILE-READNEXT-FIN.
+           PERFORM ZZ-FILE-READNEXT-DUMMY
+              THRU ZZ-FILE-READNEXT-DUMMY-FIN.
+           PERFORM ZZ-FILE-ENDBR
+              THRU ZZ-FILE-ENDBR-FIN.
+           IF RET-TRT-OK
+              MOVE WS-RET-BROWSE  TO WS-RET-CODE.
+           GO TO                  END-B-READFILE.
+       B-FILE-ENDFILE.
+      *=====================================================================*
+      *   Serious error handle exit.                                        *
+      *=====================================================================*
+      *
+           DISPLAY 'CI43CXCS *  B-FILE-ENDFILE'.
+           SET RET-TRT-KO         TO TRUE.
+           MOVE WS-RET-EOF        TO WS-RET-CODE.
+           PERFORM ZZ-FILE-ENDBR
+              THRU ZZ-FILE-ENDBR-FIN.
+           GO TO                  END-B-READFILE.
+       B-ERR-FILE-LONG.
+      *=====================================================================*
+      *   Serious error handle exit.                                        *
+      *=====================================================================*
+      *
+           DISPLAY 'CI43CXCS *  B-ERR-FILE-LONG'.
+           SET RET-TRT-KO         TO TRUE.
+           MOVE WS-RET-ERROR      TO WS-RET-CODE.
+           PERFORM Z-ERROR-HANDLER.
+           GO TO                  END-B-READFILE.
+       B-ERR-FILE-ERROR.
+      *=====================================================================*
+      *   Serious error handle exit.                                        *
+      *=====================================================================*
+      *
+           DISPLAY 'CI43CXCS *  B-ERR-FILE-ERROR'.
+           SET RET-TRT-KO         TO TRUE.
+           MOVE WS-RET-ERROR      TO WS-RET-CODE.
+           PERFORM Z-ERROR-HANDLER.
+           GO TO                  END-B-READFILE.
+      *
+       B-ERR-NOTAUTH.
+      *=====================================================================*
+      *   Serious error handle exit.                                        *
+      *=====================================================================*
+      *
+           DISPLAY 'CI43CXCS *  B-ERR-NOTAUTH'.
+           SET RET-TRT-KO         TO TRUE.
+           MOVE WS-RET-NOTAUTH    TO WS-RET-CODE.
+           PERFORM Z-ERROR-HANDLER.
+           GO TO                  END-B-READFILE.
+       END-B-READFILE.
+           EXIT.
+           EJECT.
+      *
+       C-CLOSFILE SECTION.
+      *=====================================================================*
+      *                                                                     *
+      *   CLOSFILE                                                          *
+      *                                                                     *
+      *   fermeture du fichier et gestion erreurs                           *
+      *                                                                     *
+      *=====================================================================*
+      *
+           DISPLAY 'CI43CXCS *  C-CLOSFILE'.
+           SET RET-TRT-OK        TO TRUE.
+           MOVE WS-RET-BROWSE    TO WS-RET-CODE.
+      *
+           EXEC CICS HANDLE CONDITION INVREQ(C-ERR-FILE-INVREQ)
+                                      ERROR(C-ERR-FILE-CLOSE)
+                                      NOTAUTH(D-ERR-NOTAUTH)
+           END-EXEC.
+      *
+           PERFORM ZZ-FILE-CLOSE-WAIT
+              THRU ZZ-FILE-CLOSE-WAIT-FIN.
+      *
+           GO TO                  END-C-CLOSFILE.
+       C-ERR-FILE-INVREQ.
+      *=====================================================================*
+      *   Serious error handle exit.                                        *
+      *=====================================================================*
+      *
+           DISPLAY 'CI43CXCS *  C-ERR-FILE-INVREQ'.
+           SET RET-TRT-KO         TO TRUE.
+           MOVE WS-RET-ERROR      TO WS-RET-CODE.
+           PERFORM Z-ERROR-HANDLER.
+           GO TO                  END-C-CLOSFILE.
+      *
+       C-ERR-FILE-CLOSE.
+      *=====================================================================*
+      *   Serious error handle exit.                                        *
+      *=====================================================================*
+      *
+           DISPLAY 'CI43CXCS *  C-ERR-FILE-CLOSE'.
+           SET RET-TRT-KO         TO TRUE.
+           MOVE WS-RET-ERROR      TO WS-RET-CODE.
+           PERFORM Z-ERROR-HANDLER.
+           GO TO                  END-C-CLOSFILE.
+      *
+       C-ERR-NOTAUTH.
+      *=====================================================================*
+      *   Serious error handle exit.                                        *
+      *=====================================================================*
+      *
+           DISPLAY 'CI43CXCS *  C-ERR-NOTAUTH'.
+           SET RET-TRT-KO         TO TRUE.
+           MOVE WS-RET-NOTAUTH    TO WS-RET-CODE.
+           PERFORM Z-ERROR-HANDLER.
+           GO TO                  END-C-CLOSFILE.
+       END-C-CLOSFILE.
+           EXIT.
+           EJECT.
+      *
+       D-WRITFILE SECTION.
+      *=====================================================================*
+      *                                                                     *
+      *   WRITFILE                                                          *
+      *                                                                     *
+      *   mise @ jour d'un enregistrement et fourniture cl{ suivante        *
+      *                                                                     *
+      *=====================================================================*
+      *
+           DISPLAY 'CI43CXCS *  D-WRITFILE'.
+           SET RET-TRT-OK   TO TRUE.
+      *
+           EXEC CICS HANDLE CONDITION
+                     LENGERR(D-ERR-FILE-LONG)
+                     ENDFILE(D-FILE-ENDFILE)
+                     ERROR(D-ERR-FILE-ERROR)
+                     NOTAUTH(D-ERR-NOTAUTH)
+           END-EXEC.
+           PERFORM ZZ-FILE-STARTBR
+              THRU ZZ-FILE-STARTBR-FIN.
+           PERFORM ZZ-FILE-READPREV-DUMMY
+              THRU ZZ-FILE-READPREV-DUMMY-FIN.
+           PERFORM ZZ-FILE-READNEXT-DUMMY
+              THRU ZZ-FILE-READNEXT-DUMMY-FIN.
+           PERFORM ZZ-FILE-ENDBR
+              THRU ZZ-FILE-ENDBR-FIN.
+           PERFORM ZZ-FILE-READ-DUMMY-UPDATE
+              THRU ZZ-FILE-READ-DUMMY-UPDATE-FIN.
+           PERFORM ZZ-FILE-REWRITE
+              THRU ZZ-FILE-REWRITE-FIN.
+           PERFORM ZZ-FILE-STARTBR
+              THRU ZZ-FILE-STARTBR-FIN.
+           PERFORM ZZ-FILE-READPREV-DUMMY
+              THRU ZZ-FILE-READPREV-DUMMY-FIN.
+           PERFORM ZZ-FILE-READNEXT-DUMMY
+              THRU ZZ-FILE-READNEXT-DUMMY-FIN.
+           PERFORM ZZ-FILE-ENDBR
+              THRU ZZ-FILE-ENDBR-FIN.
+           SET RET-TRT-OK         TO TRUE.
+            MOVE WS-RET-BROWSE    TO WS-RET-CODE.
+           GO TO                  END-D-WRITFILE.
+       D-FILE-ENDFILE.
+      *=====================================================================*
+      *   Serious error handle exit.                                        *
+      *=====================================================================*
+      *
+           DISPLAY 'CI43CXCS *  D-FILE-ENDFILE'.
+           SET RET-TRT-KO         TO TRUE.
+           MOVE WS-RET-EOF        TO WS-RET-CODE.
+           GO TO                  END-D-WRITFILE.
+       D-ERR-FILE-LONG.
+      *=====================================================================*
+      *   Serious error handle exit.                                        *
+      *=====================================================================*
+      *
+           DISPLAY 'CI43CXCS *  D-ERR-FILE-LONG'.
+           SET RET-TRT-KO         TO TRUE.
+           MOVE WS-RET-ERROR      TO WS-RET-CODE.
+           PERFORM Z-ERROR-HANDLER.
+           GO TO                  END-D-WRITFILE.
+       D-ERR-FILE-ERROR.
+      *=====================================================================*
+      *   Serious error handle exit.                                        *
+      *=====================================================================*
+      *
+           DISPLAY 'CI43CXCS *  D-ERR-FILE-ERROR'.
+           SET RET-TRT-KO         TO TRUE.
+           MOVE WS-RET-ERROR      TO WS-RET-CODE.
+           PERFORM Z-ERROR-HANDLER.
+           GO TO                  END-D-WRITFILE.
+      *
+       D-ERR-NOTAUTH.
+      *=====================================================================*
+      *   Serious error handle exit.                                        *
+      *=====================================================================*
+      *
+           DISPLAY 'CI43CXCS *  D-ERR-NOTAUTH'.
+           SET RET-TRT-KO         TO TRUE.
+           MOVE WS-RET-NOTAUTH    TO WS-RET-CODE.
+           PERFORM Z-ERROR-HANDLER.
+           GO TO                  END-D-WRITFILE.
+       END-D-WRITFILE.
+           EXIT.
+           EJECT.
+      *
+       Z-ERROR-HANDLER SECTION.
+      *
+      * This routine invokes the error handler for unexpected
+      * conditions from CICS.
+      *
+      *
+       Z-010.
+           DISPLAY 'CI43CXCS *  Z-010'.
+           MOVE WS-WORK-EIBFN-X     TO comm-CODE.
+           MOVE 'BATCH'             TO comm-pgmid.
+           MOVE EIBRCODE            TO comm-RCODE.
+           MOVE EIBRESP             TO comm-RESP.
+           EXEC CICS link
+                     PROGRAM(abend-program)
+                     COMMAREA(COMM-CI43TERR)
+                     NOHANDLE
+           END-EXEC.
+
+      *    EXEC CICS ABEND
+      *              ABCODE('ETRX')
+      *    END-EXEC.
+      *
+       END-Z-ERROR-HANDLER.
+           EXIT.
+           EJECT
+      *
+       ZZ-FONCTIONS SECTION.
+      *
+      * FONCTIONS DISPONIBLES
+      *
+       ZZ-INQUIRE-FILE-BROWSE.
+           DISPLAY 'CI43CXCS *  ZZ-INQUIRE-FILE-BROWSE'.
+           EXEC CICS INQUIRE FILE(FILE-NAME) BROWSE(BRZ-FLAG)
+           END-EXEC.
+       ZZ-INQUIRE-FILE-BROWSE-FIN.
+           EXIT.
+       ZZ-SET-FILE-CLOSED-WAIT.
+           DISPLAY 'CI43CXCS *  ZZ-SET-FILE-CLOSED-WAIT'.
+           EXEC CICS SET FILE(FILE-NAME) CLOSED WAIT
+           END-EXEC.
+       ZZ-SET-FILE-CLOSED-WAIT-FIN.
+           EXIT.
+       ZZ-SET-FILE-BROWSABLE.
+           DISPLAY 'CI43CXCS *  ZZ-SET-FILE-BROWSABLE'.
+           EXEC CICS SET FILE(FILE-NAME) BROWSABLE
+           END-EXEC.
+       ZZ-SET-FILE-BROWSABLE-FIN.
+           EXIT.
+       ZZ-INQUIRE-FILE-OPEN.
+           DISPLAY 'CI43CXCS *  ZZ-INQUIRE-FILE-OPEN'.
+           EXEC CICS INQUIRE FILE(FILE-NAME)
+                     OPENSTATUS(OPEN-FLAG)
+           END-EXEC.
+       ZZ-INQUIRE-FILE-OPEN-FIN.
+           EXIT.
+       ZZ-SET-FILE-ENABLED.
+           DISPLAY 'CI43CXCS *  ZZ-SET-FILE-ENABLED'.
+           EXEC CICS SET FILE(FILE-NAME) ENABLED
+           END-EXEC.
+       ZZ-SET-FILE-ENABLED-FIN.
+           EXIT.
+       ZZ-SET-FILE-OPEN.
+           DISPLAY 'CI43CXCS *  ZZ-SET-FILE-OPEN'.
+           EXEC CICS SET FILE(FILE-NAME) OPEN
+           END-EXEC.
+       ZZ-SET-FILE-OPEN-FIN.
+           EXIT.
+       ZZ-FILE-STARTBR.
+           DISPLAY 'CI43CXCS *  ZZ-FILE-STARTBR'.
+           EXEC CICS STartbr FILE(FILE-NAME) RIDFLD(RID-FIELD)
+           END-EXEC.
+       ZZ-FILE-STARTBR-FIN.
+           EXIT.
+       ZZ-FILE-READNEXT.
+           DISPLAY 'CI43CXCS *  ZZ-FILE-READNEXT'.
+           MOVE LRECL     TO LRECL-READ.
+           EXEC CICS READNEXT FILE(FILE-NAME) RIDFLD(RID-FIELD)
+                     INTO(RECORD-AREA)
+                     LENGTH(LRECL-READ)
+           END-EXEC.
+       ZZ-FILE-READNEXT-FIN.
+           EXIT.
+       ZZ-FILE-READNEXT-DUMMY.
+           DISPLAY 'CI43CXCS *  ZZ-FILE-READNEXT-DUMMY'.
+           MOVE LRECL     TO LRECL-READ.
+           EXEC CICS READNEXT FILE(FILE-NAME) RIDFLD(RID-FIELD)
+                     INTO(DUMMY)
+                     LENGTH(LRECL-READ)
+           END-EXEC.
+       ZZ-FILE-READNEXT-DUMMY-FIN.
+           EXIT.
+       ZZ-FILE-ENDBR.
+           DISPLAY 'CI43CXCS *  ZZ-FILE-ENDBR'.
+           EXEC CICS ENDBR FILE(FILE-NAME)
+           END-EXEC.
+       ZZ-FILE-ENDBR-FIN.
+           EXIT.
+       ZZ-FILE-READPREV-DUMMY.
+           DISPLAY 'CI43CXCS *  ZZ-FILE-READPREV-DUMMY'.
+           MOVE LRECL     TO LRECL-READ.
+           EXEC CICS READPREV FILE(FILE-NAME) RIDFLD(RID-FIELD)
+                     INTO(DUMMY)
+                     LENGTH(LRECL-READ)
+           END-EXEC.
+       ZZ-FILE-READPREV-DUMMY-FIN.
+           EXIT.
+       ZZ-FILE-READ-DUMMY-UPDATE.
+           DISPLAY 'CI43CXCS *  ZZ-FILE-READ-DUMMY-UPDATE'.
+           MOVE LRECL     TO LRECL-READ.
+           EXEC CICS READ FILE(FILE-NAME) RIDFLD(RID-FIELD) UPDATE
+                     INTO(DUMMY)
+                     LENGTH(LRECL-READ)
+           END-EXEC.
+       ZZ-FILE-READ-DUMMY-UPDATE-FIN.
+           EXIT.
+       ZZ-FILE-REWRITE.
+           DISPLAY 'CI43CXCS *  ZZ-FILE-REWRITE'.
+           MOVE LRECL     TO LRECL-READ.
+           EXEC CICS REWRITE FILE(FILE-NAME)
+                             FROM(RECORD-AREA)
+                             LENGTH(LRECL-READ)
+           END-EXEC.
+       ZZ-FILE-REWRITE-FIN.
+           EXIT.
+       ZZ-FILE-CLOSE-WAIT.
+           DISPLAY 'CI43CXCS *  ZZ-FILE-CLOSE-WAIT'.
+           EXEC CICS SET FILE(FILE-NAME) CLOSED
+           END-EXEC.
+       ZZ-FILE-CLOSE-WAIT-FIN.
+           EXIT.
+       ZZ-FONCTIONS-FIN.
+           EXIT.
+

@@ -1,0 +1,288 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. TR32CB04.
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT f-maj assign to MAJ.
+           SELECT f-log assign to LOG.
+       DATA DIVISION.
+       FILE SECTION.
+       FD f-log recording MODE F.
+       01  LOGING-HDR.
+         03  LOGING-DAY     PIC S9(7) COMP-3.
+         03  LOGING-TIME    PIC S9(7) COMP-3.
+         03  LOGING-TERML   PIC X(4).
+         03  LOGING-REC     PIC X(80).
+       FD f-maj    recording MODE F.
+       01 MAJ-FILEREC-FD PIC X(80).
+       WORKING-STORAGE SECTION.
+       01 MAJ-FILEREC.
+          10 MAJ-TYPEMAJ     PIC X.
+          10 MAJ-NUMB        PIC X(6).
+          10 MAJ-NAME        PIC X(20).
+          10 MAJ-ADDRX       PIC X(20).
+          10 MAJ-PHONE       PIC X(8).
+          10 MAJ-DATEX       PIC X(8).
+          10 MAJ-AMOUNT      PIC X(8).
+          10 MAJ-COMMENT     PIC X(9).
+       01  w-finmaj              PIC X.
+           88 b-finmaj-oui             VALUE '1'.
+           88 b-finmaj-non             VALUE '0'.
+       01  w-client              PIC X.
+           88 b-client-present         VALUE '1'.
+           88 b-client-absent          VALUE '0'.
+           88 b-client-erreur          VALUE '9'.
+       01  w-choix               PIC X.
+           88 b-choix-ajout            VALUE '1'.
+           88 b-choix-modification     VALUE '2'.
+           88 b-choix-suppression      VALUE '3'.
+           88 b-choix-rejet            VALUE '5'.
+       01 demande-maj            PIC X.
+       77 vsam-status PIC XX.
+       01  W-CURRENT.
+           05 W-CURR-DATE.
+              10 W-CURR-AAAA    PIC 9(4).
+              10 W-CURR-MM      PIC 9(2).
+              10 W-CURR-JJ      PIC 9(2).
+           05 FILLER REDEFINES  W-CURR-DATE.
+              10 FILLER         PIC XX.
+              10 W-CURR-AMJ     PIC 9(6).
+           05 W-CURR-TIMES.
+              10 W-CURR-HH      PIC 9(2).
+              10 W-CURR-MN      PIC 9(2).
+              10 W-CURR-SS      PIC 9(2).
+              10 W-CURR-MS      PIC 9(2).
+           05 FILLER REDEFINES  W-CURR-TIMES.
+              10 W-CURR-HMS     PIC 9(6).
+              10 FILLER         PIC XX.
+           05 W-CURR-DIFF-GMT   PIC S9(4).
+           exec sql
+              include CY32DCLI
+           end-exec.
+           EXEC SQL
+              INCLUDE SQLCA
+           END-EXEC.
+       01  dsntiar-ordre-sql pic X(8).
+       01  dsntiar-message.
+           02  dsntiar-len PIC S9(4)  COMP VALUE +1320.
+           02  dsntiar-text PIC X(132) OCCURS 10 TIMES
+                                           indexed BY dsntiar-index.
+       77  dsntiar-text-len    PIC S9(9)  COMP VALUE +132.
+       PROCEDURE DIVISION.
+           PERFORM fonction-initiale THRU fonction-initiale-f.
+           PERFORM fonction-principale
+              THRU fonction-principale-f
+              UNTIL b-finmaj-oui.
+           PERFORM fonction-fin THRU fonction-fin-f.
+           STOP RUN.
+       fonction-initiale.
+           MOVE FUNCTION CURRENT-DATE TO W-CURRENT.
+           SET b-finmaj-non TO TRUE.
+           OPEN input f-maj.
+           OPEN output f-log.
+       fonction-initiale-f.
+           EXIT.
+       fonction-principale.
+           PERFORM fonction-lecture-maj
+              THRU fonction-lecture-maj-f.
+           IF b-finmaj-non
+              PERFORM fonction-lecture-client
+                 THRU fonction-lecture-client-f
+              PERFORM fonction-choix-traitement
+                 THRU fonction-choix-traitement-f
+              PERFORM fonction-traitement
+                 THRU fonction-traitement-f
+           END-IF.
+       fonction-principale-f.
+           EXIT.
+       fonction-choix-traitement.
+           EVALUATE TRUE
+           WHEN b-client-absent
+                AND demande-maj NOT = 'A'
+              SET b-choix-rejet TO TRUE
+           WHEN b-client-present
+                AND demande-maj = 'A'
+              SET b-choix-rejet TO TRUE
+           WHEN b-client-absent
+                AND demande-maj = 'A'
+              SET b-choix-ajout TO TRUE
+           WHEN b-client-present
+                AND demande-maj = 'M'
+              SET b-choix-modification TO TRUE
+           WHEN b-client-present
+                AND demande-maj = 'S'
+              SET b-choix-suppression TO TRUE
+           END-EVALUATE.
+       fonction-choix-traitement-f.
+           EXIT.
+       fonction-traitement.
+           EVALUATE TRUE
+           WHEN b-choix-ajout
+               PERFORM fonction-ajout-client
+                  THRU fonction-ajout-client-f
+           WHEN b-choix-modification
+               PERFORM fonction-modification-client
+                  THRU fonction-modification-client-f
+           WHEN b-choix-suppression
+               PERFORM fonction-suppression-client
+                  THRU fonction-suppression-client-f
+           WHEN b-choix-rejet
+               PERFORM fonction-rejet
+                  THRU fonction-rejet-f
+           END-EVALUATE.
+       fonction-traitement-f.
+           EXIT.
+       fonction-sans-miseajour-f.
+           EXIT.
+       fonction-ajout-client.
+           move MAJ-FILEREC to stclient.
+           move ' ' to CLIENT-STAT of stclient.
+           EXEC SQL
+              INSERT INTO CLIENT
+                    (NUMB
+                    ,STAT
+                    ,NAME
+                    ,ADDRX
+                    ,PHONE
+                    ,DATEX
+                    ,AMOUNT
+                    ,COMMENT)
+                 VALUES
+                    (:CLIENT-NUMB
+                    ,:CLIENT-STAT
+                    ,:CLIENT-NAME
+                    ,:CLIENT-ADDRX
+                    ,:CLIENT-PHONE
+                    ,:CLIENT-DATEX
+                    ,:CLIENT-AMOUNT
+                    ,:CLIENT-COMMENT)
+           END-EXEC.
+           IF SQLCODE NOT = 0
+               move "add" to dsntiar-ordre-sql
+               perform liste-sqlca
+           END-IF.
+           move w-curr-amj  to Loging-day.
+           move w-curr-hms  to Loging-time.
+           move 'add'       to Loging-terml.
+           move MAJ-FILEREC to Loging-rec.
+           write LOGING-HDR.
+           DISPLAY 'fonction-ajout-client'.
+       fonction-ajout-client-f.
+           EXIT.
+       fonction-modification-client.
+           move w-curr-amj  to Loging-day.
+           move w-curr-hms  to Loging-time.
+           move 'modif'     to Loging-terml.
+           move MAJ-FILEREC to Loging-rec.
+           write LOGING-HDR.
+           DISPLAY 'fonction-modification-client'.
+           if MAJ-NAME    not = spaces
+               move MAJ-NAME    to CLIENT-NAME    of STCLIENT.
+           if MAJ-ADDRX   not = spaces
+               move MAJ-ADDRX   to CLIENT-ADDRX   of STCLIENT.
+           if MAJ-PHONE   not = spaces
+               move MAJ-PHONE   to CLIENT-PHONE   of STCLIENT.
+           if MAJ-DATEX   not = spaces
+               move MAJ-DATEX   to CLIENT-DATEX   of STCLIENT.
+           if MAJ-AMOUNT  not = spaces
+               move MAJ-AMOUNT  to CLIENT-AMOUNT  of STCLIENT.
+           if MAJ-COMMENT not = spaces
+               move MAJ-COMMENT to CLIENT-COMMENT of STCLIENT.
+           EXEC SQL
+               update CLIENT
+                  set NUMB     = :CLIENT-NUMB
+                     ,STAT     = :CLIENT-STAT
+                     ,NAME     = :CLIENT-NAME
+                     ,ADDRX    = :CLIENT-ADDRX
+                     ,PHONE    = :CLIENT-PHONE
+                     ,DATEX    = :CLIENT-DATEX
+                     ,AMOUNT   = :CLIENT-AMOUNT
+                     ,COMMENT  = :CLIENT-COMMENT
+                  WHERE NUMB=:MAJ-NUMB
+           END-EXEC.
+           IF SQLCODE NOT = 0
+               move "update" to dsntiar-ordre-sql
+               perform liste-sqlca
+           END-IF.
+           move w-curr-amj  to Loging-day.
+           move w-curr-hms  to Loging-time.
+           move 'modif'     to Loging-terml.
+           move MAJ-FILEREC to Loging-rec.
+           write LOGING-HDR.
+           DISPLAY 'fonction-modification-client'.
+       fonction-modification-client-f.
+           EXIT.
+       fonction-suppression-client.
+           EXEC SQL
+               DELETE FROM CLIENT
+               WHERE NUMB=:maj-NUMB
+           END-EXEC.
+           IF SQLCODE NOT = 0
+               move "delete" to dsntiar-ordre-sql
+               perform liste-sqlca
+           END-IF.
+           move w-curr-amj  to Loging-day.
+           move w-curr-hms  to Loging-time.
+           move 'supp'      to Loging-terml.
+           move MAJ-FILEREC to Loging-rec.
+           write LOGING-HDR.
+           DISPLAY 'fonction-suppression-client'.
+       fonction-suppression-client-f.
+           EXIT.
+       fonction-rejet.
+           move w-curr-amj  to Loging-day.
+           move w-curr-hms  to Loging-time.
+           move 'rejet'     to Loging-terml.
+           move MAJ-FILEREC to Loging-rec.
+           write LOGING-HDR.
+           DISPLAY 'fonction-rejet'.
+       fonction-rejet-f.
+           EXIT.
+       fonction-lecture-maj.
+           READ f-maj into MAJ-FILEREC
+           AT END
+              set b-finmaj-oui to true
+           not at END
+              move MAJ-TYPEMAJ of MAJ-FILEREC to demande-maj
+           END-READ.
+           DISPLAY 'fonction-lecture-maj'.
+       fonction-lecture-maj-f.
+           EXIT.
+       fonction-lecture-client.
+           DISPLAY 'fonction-lecture-client'.
+           EXEC SQL
+              SELECT * INTO :STCLIENT FROM CLIENT
+              where NUMB = :MAJ-NUMB
+           END-EXEC.
+           EVALUATE SQLCODE
+           WHEN 0
+              SET b-client-present to true
+           WHEN +100
+              SET b-client-absent to true
+           WHEN OTHER
+              SET b-client-erreur to true
+              move "select" to dsntiar-ordre-sql
+              perform liste-sqlca
+           END-EVALUATE.
+       fonction-lecture-client-f.
+           EXIT.
+       fonction-fin.
+           CLOSE f-log.
+           CLOSE f-maj.
+           DISPLAY 'fonction-fin'.
+       fonction-fin-f.
+            EXIT.
+       liste-sqlca.
+           CALL 'DSNTIAR' USING SQLCA dsntiar-message dsntiar-text-len.
+           DISPLAY ' 1-'  dsntiar-ordre-sql '*' dsntiar-text(1).
+           DISPLAY ' 2-'  dsntiar-ordre-sql '*' dsntiar-text(2).
+           DISPLAY ' 3-'  dsntiar-ordre-sql '*' dsntiar-text(3).
+           DISPLAY ' 4-'  dsntiar-ordre-sql '*' dsntiar-text(4).
+           DISPLAY ' 5-'  dsntiar-ordre-sql '*' dsntiar-text(5).
+           DISPLAY ' 6-'  dsntiar-ordre-sql '*' dsntiar-text(6).
+           DISPLAY ' 7-'  dsntiar-ordre-sql '*' dsntiar-text(7).
+           DISPLAY ' 8-'  dsntiar-ordre-sql '*' dsntiar-text(8).
+           DISPLAY ' 9-'  dsntiar-ordre-sql '*' dsntiar-text(9).
+           DISPLAY '10-'  dsntiar-ordre-sql '*' dsntiar-text(10).
+

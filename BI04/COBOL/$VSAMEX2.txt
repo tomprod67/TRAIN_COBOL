@@ -1,0 +1,44 @@
+000100 FILE-CONTROL.                                                    00010000
+000200     SELECT vsam-file ASSIGN vsamfile                             00020000
+000300        ORGANIZATION IS INDEXED                                   00030000
+000400        ACCESS MODE  IS SEQUENTIAL                                00040000
+000500        RECORD KEY   IS vsam-record-key                           00050000
+              ALTERNATE KEY IS vsam-altkey WITH DUPLICATES              00051000
+000600        FILE STATUS  IS status-code-vsam                          00060000
+000700                        extended-status-code-vsam                 00070000
+000800                                                                  00080000
+000900 DATA DIVISION.                                                   00090000
+001000 FILE SECTION.                                                    00100000
+001100                                                                  00110000
+001200 FD  vsam-file.                                                   00120000
+001300 01  vsam-record.                                                 00130000
+001400     05  vsam-record-key         PIC X(20).                       00140000
+001500     05  vsam-emp-infor          PIC X(50).                       00150000
+001400     05  vsam-altkey             PIC X(10).                       00151000
+001600                                                                  00160000
+001000 WORKING-STORAGE SECTION.                                         00170000
+      *     00  ok                                                      00180000
+      *     02  cl{ existante                                           00190000
+      *     10  fin de fichier                                          00191000
+      *     23  cl{ non trouv{e                                         00192000
+      *     autre erreur plantage programme                             00193000
+       01  status-code-vsam PIC XX.                                     00194000
+       01  extended-status-code-vsam.                                   00195000
+           05 extended-return-code-vsam    PIC S9(4) COMP.              00196000
+           05 extended-fonction-code-vsam  PIC S9(4) COMP.              00197000
+           05 extended-feedback-code-vsam  PIC S9(4) COMP.              00198000
+                                                                        00199000
+001000 PROCEDURE DIVISION.                                              00200000
+                                                                        00210000
+           OPEN I-O vsam-file.                                          00220000
+           IF status-code-vsam NOT = '00' THEN                          00230000
+              DISPLAY 'ERREUR OPEN vsam' status-code-vsam               00240000
+           END-IF.                                                      00250000
+                                                                        00260000
+           START vsam-file key IS NOT LESS vsam-altkey                  00261000
+           END-START.                                                   00262000
+                                                                        00270000
+           READ  vsam-file NEXT                                         00271000
+           END-READ.                                                    00272000
+                                                                        00280000
+

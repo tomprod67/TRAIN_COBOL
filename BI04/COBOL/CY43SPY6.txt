@@ -1,0 +1,7 @@
+      *              UTILISATION SOUS PROGRAMME TR43SPY6
+       01  CY43SPY6-ECHANGE.
+           10 CY43SPY6-LIGNE.              .
+              10 CY43SPY6-CLE      PIC X(6).
+              10 FILLER            PIC X(72).
+           10 CY43SPY6-SQLCODE     PIC S9(9).
+

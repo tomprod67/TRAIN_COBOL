@@ -1,0 +1,61 @@
+//TRAIN43I JOB SSY,'INIT VSAM',MSGCLASS=X,REGION=0M,
+//         NOTIFY=&SYSUID
+//*
+//* STEP 1 : DEFINE LIKE
+//*
+//IDCAMS EXEC PGM=IDCAMS
+//SYSPRINT DD SYSOUT=*
+//SYSIN  DD *
+ DELETE TRAIN43.BI04.CLIENT.VS
+ DEFINE CLUSTER (NAME('TRAIN43.BI04.CLIENT.VS') -
+        MODEL('FORM.INIT.BI04.VSAM'))
+/*
+//*                                                                  *
+//* STEP 2 : PRINT FICHIER SEQUENTIEL
+//*        : LOAD VSAM DEPUIS FICHIER SEQUENTIEL
+//*
+//REPRO    EXEC PGM=IDCAMS
+//SYSPRINT DD  SYSOUT=*
+//IN       DD  DSN=TRAIN43.BI04.CLIENT,DISP=SHR
+//OUT      DD  DSN=TRAIN43.BI04.CLIENT.VS,DISP=SHR
+//SYSIN    DD  *
+ REPRO INFILE(IN) OUTFILE(OUT)
+//*                                                                  *
+//* STEP 3 : DEFINE ALTERNATE
+//*
+//DEFALTIX EXEC PGM=IDCAMS
+//SYSPRINT DD   SYSOUT=*
+//SYSIN    DD   *
+ DEFINE    AIX      (NAME (TRAIN43.BI04.CLIENT.VS.AIX1)       -
+                     RELATE (TRAIN43.BI04.CLIENT.VS)          -
+                     RECORDSIZE (80 80)                       -
+                     TRACKS (10 5)                            -
+                     KEYS (08 47)                             -
+                     UPGRADE)
+/*
+//*                                                                  *
+//* STEP 4 : DEFINE PATH
+//*
+//DEFPATH  EXEC PGM=IDCAMS
+//SYSPRINT DD   SYSOUT=*
+//SYSIN    DD   *
+ DEFINE    PATH     (NAME (TRAIN43.BI04.CLIENT.VS.PATH1) -
+                     PATHENTRY (TRAIN43.BI04.CLIENT.VS.AIX1) -
+                     UPDATE                                   -
+                    )
+/*
+//*                                                                  *
+//* STEP 4 : BUILD INDEX
+//*
+//BLDINDEX EXEC PGM=IDCAMS
+//SYSPRINT DD   SYSOUT=*
+//BASEDD   DD   DSN=TRAIN43.BI04.CLIENT.VS,DISP=OLD
+//AIX1DD   DD   DSN=TRAIN43.BI04.CLIENT.VS.AIX1,DISP=OLD
+//IDCUT1   DD   UNIT=SYSDA,SPACE=(CYL,55)
+//IDCUT2   DD   UNIT=SYSDA,SPACE=(CYL,55)
+//SYSIN    DD   *
+ BLDINDEX  INFILE (BASEDD)                    -
+           OUTFILE (AIX1DD)
+/*
+//*
+

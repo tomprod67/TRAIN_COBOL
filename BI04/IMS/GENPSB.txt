@@ -1,0 +1,13 @@
+//TRAIN43P    JOB SSY,'PSBGEN   ',                                      00010009
+//         MSGCLASS=X,NOTIFY=&SYSUID                                    00020002
+//*                                                                     00181000
+//MESPROC    JCLLIB ORDER=(FORM.BI04.PROCLIB,                           00182006
+//           FORM.BI04.PROCLIB.CICS,                                    00183006
+//           FORM.BI04.PROCLIB.IMS)                                     00184006
+//*                                                                     00720000
+//*        STEP     RUN THE PSBGEN                                      00730002
+//*                                                                     00731000
+//STEP     EXEC PSBGEN,MBR=IM43LIST                                     00740011
+//C.SYSIN DD DISP=SHR,DSN=&SYSUID..BI04.IMS(PB43LIST)                   00750011
+//*                                                                     00760000
+

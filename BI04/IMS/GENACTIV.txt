@@ -1,0 +1,42 @@
+//TRAIN43P    JOB SSY,'PSBGEN   ',                                      00010005
+//         MSGCLASS=X,NOTIFY=&SYSUID                                    00020004
+//*                                                                     00050000
+//MESPROC    JCLLIB ORDER=(FORM.BI04.PROCLIB,                           00060002
+//           FORM.BI04.PROCLIB.CICS,                                    00061002
+//           FORM.BI04.PROCLIB.IMS)                                     00062002
+//*                                                                     00070000
+//********************************************************************* 00080000
+//* IVP IMS 14.1                                                        00090000
+//*                                                                     00100000
+//* SKELETON: DFSIXSEB                                                  00110000
+//*                                                                     00120000
+//* FUNCTION: COPY STAGING LIBRARIES TO ACTIVE LIBRARIES                00130000
+//********************************************************************* 00140000
+//*                                                                     00150000
+//************************************************************@SCPYRT** 00160000
+//*                                                                   * 00170000
+//*  LICENSED MATERIALS - PROPERTY OF IBM                             * 00180000
+//*                                                                   * 00190000
+//*  5635-A05                                                         * 00200000
+//*                                                                   * 00210000
+//*      COPYRIGHT IBM CORP. 1989,1998 ALL RIGHTS RESERVED            * 00220000
+//*                                                                   * 00230000
+//*  US GOVERNMENT USERS RESTRICTED RIGHTS - USE, DUPLICATION OR      * 00240000
+//*  DISCLOSURE RESTRICTED BY GSA ADP SCHEDULE CONTRACT WITH          * 00250000
+//*  IBM CORP.                                                        * 00260000
+//*                                                                   * 00270003
+//************************************************************@ECPYRT** 00280000
+//*                                                                     00290000
+//* COPY MODBLKS TO MODBLKSB                                            00300000
+//*                                                                     00310000
+//*MODBLKS  EXEC PROC=OLCUTL,SOUT='*',TYPE=MODBLKS,IN=S,OUT=B           00320003
+//*                                                                     00330000
+//* COPY ACBLIB  TO ACBLIBB                                             00340000
+//*                                                                     00350000
+//ACBLIB   EXEC PROC=OLCUTL,SOUT='*',TYPE=ACB,IN=S,OUT=B                00360011
+//*                                                                     00370000
+//* COPY FORMAT  TO FORMATB                                             00380000
+//*                                                                     00390000
+//FORMAT   EXEC PROC=OLCUTL,SOUT='*',TYPE=FORMAT,IN=S,OUT=B             00400011
+//*                                                                     00410000
+

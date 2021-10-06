@@ -1,0 +1,10 @@
+      *==============================================================*
+      *   Define Commarea struct.                                    *
+      *==============================================================*
+       05  COMMAREA-SUITE.
+         10  CALL-TYPE        PIC S9(8) COMP.
+         10  FILE-NAME        PIC X(8).
+         10  RID-FIELD        PIC X(6).
+         10  RECORD-AREA.
+         COPY CYXXCSFI.
+

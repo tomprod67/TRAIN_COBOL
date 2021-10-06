@@ -1,0 +1,26 @@
+//TRAIN435  JOB NOTIFY=&SYSUID                                          00000001
+//*                                                                     00000002
+//********************************************************************* 00218400
+//*                CREATION D UNE TABLE                                 00219200
+//*               AVEC SAUVEGARDE SYSCOPY                               00219200
+//********************************************************************* 00218400
+//*                                                                     00230000
+//JOBLIB  DD  DSN=DB2B10.SDSNLOAD,DISP=SHR                              00220000
+//*                                                                     00230000
+//*                                                                     12100000
+//*        STEP 09: REORGANIZE TABLESPACES, PRODUCE STATISTICS          12110000
+//*                                                                     12115000
+//PH01S09 EXEC DSNUPROC,PARM='DB2T,DSNTEX',COND=(4,LT)                  12120000
+//SYSLISTD DD  DISP=SHR,DSN=TRAIN43.BI04.DB2T.LISTDEF                   12125000
+//SORTLIB  DD  DSN=SYS1.SORTLIB,DISP=SHR                                12130000
+//SORTOUT  DD  UNIT=SYSDA,SPACE=(4000,(20,20),,,ROUND)                  12140000
+//DSNTRACE DD  SYSOUT=*                                                 12190000
+//SYSUT1   DD  UNIT=SYSDA,SPACE=(4000,(50,50),,,ROUND)                  12200000
+//SYSREC   DD  UNIT=SYSDA,SPACE=(4000,(200,200),,,ROUND)                12210000
+//SYSIN    DD  *                                                        12220000
+                                                                        12230000
+ REORG TABLESPACE BI04BASE.BI04TT43                                     12240000
+        SORTDEVT(SYSDA) SORTNUM 4                                       12245000
+                                                                        12280000
+//*                                                                     14268000
+

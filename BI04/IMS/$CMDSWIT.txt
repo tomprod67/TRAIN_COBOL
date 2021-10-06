@@ -1,0 +1,11 @@
+              rafraichissement ressources IMS
+------------------------------------------------------
+switch fichiers          FORMATA <-->  FORMATB
+                         ACBLIBA <-->  ACBLIBB
+------------------------------------------------------
+activation fichiers inactifs FORMAT? / ACTLIB?
+/MODIFY PREPARE all
+/MODIFY COMMIT
+affichage fichiers actifs/inactifs
+/DIS MODIFY ALL
+

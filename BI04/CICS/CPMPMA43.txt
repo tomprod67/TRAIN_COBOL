@@ -1,0 +1,15 @@
+//TRAIN43C JOB SSY,'COMPIL MAPSET     ',                                00010011
+//         MSGCLASS=X,NOTIFY=&SYSUID TYPRUN=SCAN                        00020012
+//*                                                                     00030000
+//MESPROC    JCLLIB ORDER=(FORM.BI04.PROCLIB,                           00040005
+//           FORM.BI04.PROCLIB.CICS,                                    00041005
+//           FORM.BI04.PROCLIB.IMS)                                     00042005
+//*           MAP MENU                                                  00042110
+//ASM      EXEC DFHMAPS,SUFNAME='43MNU'                                 00043011
+//*           MAP DETAIL                                                00044010
+//ASM      EXEC DFHMAPS,SUFNAME='43DET'                                 00045011
+//*           MAP LISTE                                                 00046010
+//ASM      EXEC DFHMAPS,SUFNAME='43LIS'                                 00047011
+//*           MAP ERREUR                                                00048010
+//ASM      EXEC DFHMAPS,SUFNAME='43ERR'                                 00049011
+

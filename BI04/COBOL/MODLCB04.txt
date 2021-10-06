@@ -1,0 +1,143 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. MODLCB04.
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.
+       INPUT-OUTPUT SECTION.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01  w-finmaj              PIC X.
+           88 b-finmaj-oui             VALUE '1'.
+           88 b-finmaj-non             VALUE '0'.
+       01  w-client              PIC X.
+           88 b-client-present         VALUE '1'.
+           88 b-client-absent          VALUE '0'.
+           88 b-client-erreur          VALUE '9'.
+       01  w-choix               PIC X.
+           88 b-choix-ajout            VALUE '1'.
+           88 b-choix-modification     VALUE '2'.
+           88 b-choix-suppression      VALUE '3'.
+           88 b-choix-rejet            VALUE '5'.
+       01 demande-maj            PIC X.
+       PROCEDURE DIVISION.
+           PERFORM fonction-initiale THRU fonction-initiale-f.
+           PERFORM fonction-principale
+              THRU fonction-principale-f
+              UNTIL b-finmaj-oui.
+           PERFORM fonction-fin THRU fonction-fin-f.
+           STOP RUN.
+       fonction-initiale.
+           SET b-finmaj-non TO TRUE.
+       fonction-initiale-f.
+           EXIT.
+       fonction-principale.
+           PERFORM fonction-lecture-maj
+              THRU fonction-lecture-maj-f.
+           IF b-finmaj-non
+              PERFORM fonction-lecture-client
+                 THRU fonction-lecture-client-f
+              PERFORM fonction-choix-traitement
+                 THRU fonction-choix-traitement-f
+              PERFORM fonction-traitement
+                 THRU fonction-traitement-f
+           END-IF.
+       fonction-principale-f.
+           EXIT.
+       fonction-choix-traitement.
+           EVALUATE TRUE
+           WHEN b-client-absent
+                AND demande-maj NOT = 'A'
+              SET b-choix-rejet TO TRUE
+           WHEN b-client-present
+                AND demande-maj = 'A'
+              SET b-choix-rejet TO TRUE
+           WHEN b-client-absent
+                AND demande-maj = 'A'
+              SET b-choix-ajout TO TRUE
+           WHEN b-client-present
+                AND demande-maj = 'M'
+              SET b-choix-modification TO TRUE
+           WHEN b-client-present
+                AND demande-maj = 'S'
+              SET b-choix-suppression TO TRUE
+           END-EVALUATE.
+       fonction-choix-traitement-f.
+           EXIT.
+       fonction-traitement.
+           EVALUATE TRUE
+           WHEN b-choix-ajout
+               PERFORM fonction-ajout-client
+                  THRU fonction-ajout-client-f
+           WHEN b-choix-modification
+               PERFORM fonction-modification-client
+                  THRU fonction-modification-client-f
+           WHEN b-choix-suppression
+               PERFORM fonction-suppression-client
+                  THRU fonction-suppression-client-f
+           WHEN b-choix-rejet
+               PERFORM fonction-rejet
+                  THRU fonction-rejet-f
+           END-EVALUATE.
+       fonction-traitement-f.
+           EXIT.
+       fonction-sans-miseajour-f.
+           EXIT.
+       fonction-ajout-client.
+           DISPLAY 'fonction-ajout-client'.
+      *   1-transfert le record MAJ lu dans le record nouveau client
+      *   2-mettre a espace le champ STAT du nouveau client
+      *   3-creer le nouveau client
+      *   4-mettre en forme le record LOG
+      *   5-ecriture du record LOG
+       fonction-ajout-client-f.
+           EXIT.
+       fonction-modification-client.
+           DISPLAY 'fonction-modification-client'.
+      *   1-transfert le record Client lu dans le record nouveau client
+      *   2-pour chaque champ different d'espace du fichier MAJ
+      *            SAUF MAJ-STAT et MAJ-NUMB
+      *       transfert du champ du fichier MAJ dans celui du fichier client
+      *   3- mettre a jour le client
+      *   4-mettre en forme le record LOG
+      *   5-ecriture du record LOG
+       fonction-modification-client-f.
+           EXIT.
+       fonction-suppression-client.
+           DISPLAY 'fonction-suppression-client'.
+      *   1- supprimer le client
+      *   2-mettre en forme le record LOG
+      *   3-ecriture du record LOG
+       fonction-suppression-client-f.
+           EXIT.
+       fonction-rejet.
+           DISPLAY 'fonction-rejet'.
+      *   1-mettre en forme le record LOG
+      *   2-ecriture du record LOG
+       fonction-rejet-f.
+           EXIT.
+       fonction-lecture-maj.
+           DISPLAY 'fonction-lecture-maj'.
+      ******************************
+      *      lecture fichier MAJ
+      *      si fin de fichier
+      *         initialiser b-finmaj-oui @ vrai
+      *      sinon
+      *         initialiser demande-maj depuis MAJ-TYPEMAJ
+      ******************************
+       fonction-lecture-maj-f.
+           EXIT.
+       fonction-lecture-client.
+           DISPLAY 'fonction-lecture-client'.
+      ******************************
+      *      lecture fichier client
+      *      si client non trouv{
+      *         initialiser b-client-absent  @ vrai
+      *      sinon
+      *         initialiser b-client-present @ vrai
+      ******************************
+       fonction-lecture-client-f.
+           EXIT.
+       fonction-fin.
+           DISPLAY 'fonction-fin'.
+       fonction-fin-f.
+            EXIT.
+

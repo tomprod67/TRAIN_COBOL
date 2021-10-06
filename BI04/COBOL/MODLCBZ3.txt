@@ -1,0 +1,255 @@
+       IDENTIFICATION DIVISION.
+      *        = modlcb03 avec tri interne fichier maj
+       PROGRAM-ID. MODLCBZ3.
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+******     SELECT MAJTRI ASSIGN TO SYSWORK.
+       DATA DIVISION.
+       FILE SECTION.
+****** SD  MAJTRI.
+****** 01  MAJTRI-FD.
+******     05 FILLER PIC X.
+******     05 MAJTRI-NUMB PIC X(6).
+******     05 FILLER PIC X(73).
+       WORKING-STORAGE SECTION.
+       01  w-1erefois            PIC X.
+           88 b-1erefois-oui           VALUE '1'.
+           88 b-1erefois-non           VALUE '0'.
+      *01  w-maj                 PIC X.
+      *    88 b-maj-alire              VALUE '1'.
+      *    88 b-maj-nepaslire          VALUE '0'.
+       01  w-finmaj              PIC X.
+           88 b-finmaj-oui             VALUE '1'.
+           88 b-finmaj-non             VALUE '0'.
+****** 01  w-finmajtri           PIC X.
+******     88 b-finmajtri-oui VALUE '1'.
+******     88 b-finmajtri-non VALUE '0'.
+****** 01  w-majtri              PIC X.
+******     88 b-majtri-alire           VALUE '1'.
+******     88 b-majtri-nepaslire       VALUE '0'.
+       01  w-client              PIC X.
+           88 b-client-alire           VALUE '1'.
+           88 b-client-nepaslire       VALUE '0'.
+       01  w-fincli              PIC X.
+           88 b-fincli-oui VALUE '1'.
+           88 b-fincli-non VALUE '0'.
+       01  w-choix      PIC X.
+           88 b-choix-ajout            VALUE '1'.
+           88 b-choix-modification     VALUE '2'.
+           88 b-choix-suppression      VALUE '3'.
+           88 b-choix-sans-maj         VALUE '4'.
+           88 b-choix-rejet-sanscopie  VALUE '5'.
+           88 b-choix-rejet-copie      VALUE '6'.
+           88 b-choix-rejet            VALUE '5', '6'.
+       01 cle-maj                PIC X(6).
+       01 demande-maj            PIC X.
+       01 cle-cli                PIC X(6).
+       PROCEDURE DIVISION.
+           PERFORM fonction-initiale THRU fonction-initiale-f.
+******     SORT MAJTRI
+******        ON ASCENDING KEY MAJTRI-NUMB
+******        INPUT PROCEDURE
+******              fonction-input-procedure
+******         THRU fonction-input-procedure-f
+******        OUTPUT PROCEDURE
+******              fonction-output-procedure
+******         THRU fonction-output-procedure
+           PERFORM fonction-fin THRU fonction-fin-f.
+           STOP RUN.
+****** fonction-input-procedure.
+******     PERFORM fonction-creation-majtri
+******        THRU fonction-creation-majtri-f
+******        UNTIL b-finmaj-oui.
+****** fonction-input-procedure-f.
+******     EXIT.
+****** fonction-creation-majtri.
+******     PERFORM fonction-lecture-maj
+******           THRU fonction-lecture-maj-f
+******     IF b-finmaj-non THEN
+******        PERFORM fonction-ecriture-majtri
+******           THRU fonction-ecriture-majtri-f
+******     END-IF.
+****** fonction-creation-majtri-f.
+******     EXIT.
+****** fonction-output-procedure.
+******     SET b-finmajtri-non TO TRUE.
+******     PERFORM fonction-principale-output
+******        THRU fonction-principale-output-f
+******        UNTIL b-finmajtri-oui
+******          AND b-fincli-oui.
+****** fonction-output-procedure-f.
+******     EXIT.
+       fonction-initiale.
+           SET b-finmaj-non TO TRUE.
+           SET b-finmajtri-non TO TRUE.
+           SET b-fincli-non TO TRUE.
+           SET b-1erefois-oui     TO TRUE.
+       fonction-initiale-f.
+           EXIT.
+****** fonction-principale-output.
+******     PERFORM fonction-choix-lecture
+******        THRU fonction-choix-lecture-f.
+******     IF b-majtri-alire THEN
+******        PERFORM fonction-lecture-majtri
+******           THRU fonction-lecture-majtri-f
+******     END-IF.
+******     IF b-client-alire THEN
+******        PERFORM fonction-lecture-client
+******           THRU fonction-lecture-client-f
+******     END-IF.
+******     IF b-finmajtri-non
+******        OR b-fincli-non
+******        PERFORM fonction-choix-traitement
+******           THRU fonction-choix-traitement-f
+******        PERFORM fonction-traitement
+******           THRU fonction-traitement-f
+******     END-IF.
+****** fonction-principale-output-f.
+******     EXIT.
+****** fonction-choix-lecture.
+******     EVALUATE TRUE
+******     WHEN b-1erefois-oui
+******        SET b-majtri-alire         TO TRUE
+******        SET b-client-alire         TO TRUE
+******        SET b-1erefois-non         TO TRUE
+******     WHEN b-fincli-oui
+******      AND b-finmajtri-oui
+******        SET b-majtri-nepaslire     TO TRUE
+******        SET b-client-nepaslire     TO TRUE
+******     WHEN b-fincli-oui
+******        SET b-majtri-alire         TO TRUE
+******        SET b-client-nepaslire     TO TRUE
+******     WHEN b-finmajtri-oui
+******        SET b-majtri-nepaslire     TO TRUE
+******        SET b-client-alire         TO TRUE
+******     WHEN cle-maj < cle-cli
+******        SET b-majtri-alire         TO TRUE
+******        SET b-client-nepaslire     TO TRUE
+******     WHEN cle-maj = cle-cli
+******        SET b-majtri-alire         TO TRUE
+******        SET b-client-alire         TO TRUE
+******     WHEN cle-maj > cle-cli
+******        SET b-majtri-nepaslire     TO TRUE
+******        SET b-client-alire         TO TRUE
+******     END-EVALUATE.
+****** fonction-choix-lecture-f.
+******     EXIT.
+       fonction-choix-traitement.
+           EVALUATE TRUE
+           WHEN b-fincli-oui
+                AND demande-maj = 'A'
+              SET b-choix-ajout TO TRUE
+           WHEN b-fincli-oui
+                AND demande-maj NOT = 'A'
+              SET b-choix-rejet-sanscopie TO TRUE
+******     WHEN b-finmajtri-oui
+              SET b-choix-sans-maj TO TRUE
+           WHEN cle-maj < cle-cli
+                AND demande-maj = 'A'
+              SET b-choix-ajout TO TRUE
+           WHEN cle-maj = cle-cli
+                AND demande-maj = 'A'
+              SET b-choix-rejet-copie TO TRUE
+           WHEN cle-maj = cle-cli
+                AND demande-maj = 'M'
+              SET b-choix-modification TO TRUE
+           WHEN cle-maj = cle-cli
+                AND demande-maj = 'S'
+              SET b-choix-suppression TO TRUE
+           WHEN cle-maj = cle-cli
+              AND demande-maj NOT = 'S'
+              AND demande-maj NOT = 'M'
+              SET b-choix-rejet-copie TO TRUE
+           WHEN cle-maj > cle-cli
+              SET b-choix-sans-maj TO TRUE
+           END-EVALUATE.
+       fonction-choix-traitement-f.
+           EXIT.
+       fonction-traitement.
+           EVALUATE TRUE
+           WHEN b-choix-ajout
+               PERFORM fonction-ajout-client
+                  THRU fonction-ajout-client-f
+           WHEN b-choix-modification
+               PERFORM fonction-modification-client
+                  THRU fonction-modification-client-f
+           WHEN b-choix-suppression
+               PERFORM fonction-suppression-client
+                  THRU fonction-suppression-client-f
+           WHEN b-choix-rejet-copie
+               PERFORM fonction-rejet
+                  THRU fonction-rejet-f
+               PERFORM fonction-sans-miseajour
+                  THRU fonction-sans-miseajour-f
+           WHEN b-choix-rejet-sanscopie
+               PERFORM fonction-rejet
+                  THRU fonction-rejet-f
+           WHEN b-choix-sans-maj
+               PERFORM fonction-sans-miseajour
+                  THRU fonction-sans-miseajour-f
+           END-EVALUATE.
+       fonction-traitement-f.
+           EXIT.
+       fonction-sans-miseajour.
+           DISPLAY 'recopie'.
+       fonction-sans-miseajour-f.
+           EXIT.
+       fonction-ajout-client.
+           DISPLAY 'ajout'.
+       fonction-ajout-client-f.
+           EXIT.
+       fonction-modification-client.
+           DISPLAY 'modification'.
+       fonction-modification-client-f.
+           EXIT.
+       fonction-suppression-client.
+           DISPLAY 'suppression'.
+       fonction-suppression-client-f.
+           EXIT.
+       fonction-rejet.
+           DISPLAY 'rejet'.
+       fonction-rejet-f.
+           EXIT.
+       fonction-lecture-maj.
+           DISPLAY 'fonction-lecture-maj'.
+************************************
+*******      si fin de fichier
+*******         initialiser b-finmaj-oui à vrai
+************************************
+       fonction-lecture-maj-f.
+           EXIT.
+****** fonction-lecture-majtri.
+******     DISPLAY 'fonction-lecture-majtri'.
+*******    RETURN  ...
+*******    END-RETURN
+      ******************************
+      *      si fin de fichier
+      *         initialiser b-finmajtri-oui à vrai
+      *      sinon
+      *         intialiser cle-maj depuis MAJ-NUMB
+      *         intialiser demande-maj depuis MAJ-TYPEMAJ
+      ******************************
+****** fonction-lecture-majtri-f.
+******     EXIT.
+****** fonction-ecriture-majtri.
+******     DISPLAY 'fonction-ecriture-majtri'.
+*******    RELEASE ...
+****** fonction-ecriture-majtri-f.
+******     EXIT.
+       fonction-lecture-client.
+           DISPLAY 'fonction-lecture-client'.
+      ******************************
+      *      si fin de fichier
+      *         initialiser b-fincli-oui à vrai
+      *      sinon
+      *         intialiser cle-cli depuis CLIENT-NUMB
+      ******************************
+       fonction-lecture-client-f.
+           EXIT.
+       fonction-fin.
+           DISPLAY 'fin'.
+       fonction-fin-f.
+            EXIT.
+

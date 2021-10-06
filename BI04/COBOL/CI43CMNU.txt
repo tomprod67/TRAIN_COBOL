@@ -1,0 +1,25 @@
+       CBL CICS('COBOL2,NOCBLCARD')
+      *****************************************************************
+      *                                                               *
+      * MODULE NAME = CI43CMNU                                        *
+      *                                                               *
+      * APPEL MENU                                                    *
+      *                                                               *
+      *---------------------------------------------------------------*
+      *                                                               *
+      * CHANGE ACTIVITY :                                             *
+      *                                                               *
+      *****************************************************************
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. CI43CMNU.
+       ENVIRONMENT DIVISION.
+       DATA DIVISION.
+      *
+       PROCEDURE DIVISION.
+      *??  envoi map 'menu' mapset 'MA43MNU'
+           EXEC CICS
+              SEND MAP('menu') MAPSET('MA43MNU') MAPONLY
+           END-EXEC.
+           EXEC CICS RETURN END-EXEC.
+           GOBACK.
+

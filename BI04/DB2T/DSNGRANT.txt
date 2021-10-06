@@ -1,0 +1,27 @@
+//TRAIN43X  JOB NOTIFY=&SYSUID                                          00000001
+//*                                                                     00000002
+//********************************************************************* 00218400
+//*                CREATION D UNE TABLE                                 00219200
+//*               AVEC SAUVEGARDE SYSCOPY                               00219200
+//********************************************************************* 00218400
+//*                                                                     00230000
+//JOBLIB  DD  DSN=DB2B10.SDSNLOAD,DISP=SHR                              00220000
+//*                                                                     00230000
+//*                                                                     08560000
+//*        STEP  &: GRANT AUTHORITY BIND                                08570000
+//*                                                                     08575000
+//PH01S03 EXEC PGM=IKJEFT01,DYNAMNBR=20,COND=(4,LT)                     08580000
+//SYSTSPRT DD  SYSOUT=*                                                 08590000
+//SYSTSIN  DD  *                                                        08600000
+  DSN SYSTEM(DB2T)                                                      08610000
+  RUN  PROGRAM(DSNTIAD) PLAN(DSNTIA11) -                                08620000
+       LIB('SYS2.DB2B10.RUNLIB')                                        08630000
+//SYSPRINT DD  SYSOUT=*                                                 08640000
+//SYSUDUMP DD  SYSOUT=*                                                 08650000
+//SYSIN    DD  *                                                        08660000
+GRANT BINDAGENT TO TRAIN43;
+COMMIT;
+GRANT BINDADD   TO TRAIN43;
+COMMIT;
+//*                                                                     10100000
+

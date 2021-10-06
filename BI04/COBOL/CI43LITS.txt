@@ -1,0 +1,167 @@
+       PROCESS CICS('COBOL2,NOCBLCARD')
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. CI43LITS.
+       ENVIRONMENT DIVISION.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+      *            message ecran erreur
+           COPY cy43err.
+       01  mess-INFO PIC X(79).
+      *
+      *------CONSTANTES CICS
+      *
+       77  code-cics          PIC 9(9) comp.
+       77  no-ts              PIC 9(4) comp VALUE ZERO.
+      *       copy CICS attribut champ
+           COPY DFHBMSCA.
+      *       copy CICS touche de fonction
+           COPY DFHAID.
+      *
+      *------constantes pilotage
+      *
+       01  w-abandon      pic X.
+           88 b-abandon-o value 'O'.
+           88 b-abandon-n value 'N'.
+           88 b-abandon-r value 'R'.
+       01  w-arret        pic X.
+           88 b-arret-o   value 'O'.
+           88 b-arret-n   value 'N'.
+       01  w-tsq          pic X.
+           88 b-tsq-vide  value 'O'.
+           88 b-tsq-nonvide value 'N'.
+           88 b-tsq-delete  value 'D'.
+       LINKAGE SECTION.
+       PROCEDURE DIVISION.
+           SET b-tsq-vide    TO TRUE.
+           SET b-abandon-n   TO TRUE.
+           SET b-arret-n     TO TRUE.
+           PERFORM trt-ts THRU trt-ts-F
+               UNTIL b-arret-o.
+           IF b-abandon-n
+              AND NOT b-tsq-vide
+              PERFORM del-ts THRU del-ts-f
+           END-IF.
+           PERFORM send-message THRU send-message-f.
+      *     utilisation fonction RETURN
+           EXEC CICS
+                  return
+           END-EXEC.
+           GOBACK.
+       trt-ts.
+           PERFORM lec-ts THRU lec-ts-f.
+           IF b-arret-n
+              AND b-abandon-n
+              PERFORM send-erreur THRU send-erreur-f
+           END-IF.
+           PERFORM receive-map THRU receive-map-f.
+       trt-ts-f.
+           EXIT.
+       send-erreur.
+      *     utilisation fonction SEND  ecran erreur mapset  ma43err
+      *         effacement ecran deblocage clavier
+      *         mise en attente apres affichage
+      *         recuperation code retour code-cics
+           EXEC CICS
+                  SEND MAP('erreur')
+                  MAPSET('MA43err')
+                  ERASE
+                  FREEKB
+                  wait
+                  RESP(code-cics)
+           END-EXEC.
+       send-erreur-f.
+           EXIT.
+       send-message.
+           MOVE LOW-VALUE TO messageo.
+           EVALUATE TRUE
+           WHEN b-abandon-r
+              MOVE 'ERREUR CICS' TO emsgo
+           WHEN b-tsq-VIDE
+              MOVE 'TS VIDE' TO emsgo
+           WHEN b-tsq-delete
+              MOVE 'TS supprimee' TO emsgo
+           WHEN OTHER
+              MOVE 'TS non supprimee' TO emsgo
+           END-EVALUATE.
+      *     utilisation fonction SEND  ecran message mapset  MA43err
+      *         effacement ecran deblocage clavier
+      *         mise en attente apres affichage
+      *         recuperation code retour code-cics
+           EXEC CICS
+                  SEND MAP('erreur')
+                  MAPSET('MA43err')
+                  ERASE
+                  FREEKB
+                  wait
+                  RESP(code-cics)
+           END-EXEC.
+       send-message-f.
+           EXIT.
+       receive-map.
+      *     utilisation fonction RECEIVE ecran message mapset  MA43err
+      *         recuperation code retour code-cics
+           EXEC CICS
+                  RECEIVE MAP('erreur')
+                  MAPSET('MA43err')
+                  RESP(code-cics)
+           END-EXEC.
+           EVALUATE TRUE
+      *          test retour normal
+      *       et test retour ecran sans modification
+           WHEN code-cics not = DFHRESP(NORMAL)
+            AND code-cics not = DFHRESP(mapfail)
+              SET b-abandon-r TO TRUE
+      *          test touche fonction EIB @ PF3
+           WHEN EIBAID = DFHPF3
+              SET b-abandon-o TO TRUE
+              SET b-arret-o TO TRUE
+           END-EVALUATE.
+       receive-map-f.
+           EXIT.
+       lec-ts.
+           ADD 1 to no-ts.
+      *     utilisation fonction lecture TS
+      *       queue TR43TS
+      *       area reception erreuro
+      *       longueur area utilisation LENGTH OF
+      *       numero ts no-ts
+      *       recuperation code retour code-cics
+           EXEC CICS
+                  READQ TS QUEUE('TR43TS')
+                  INTO(erreuro)
+                  length(LENGTH of erreuro)
+                  item(no-ts)
+                  RESP(code-cics)
+           END-EXEC.
+           EVALUATE TRUE
+      *       test lecture TS
+           WHEN code-cics = DFHRESP(NORMAL)
+              SET b-tsq-nonvide TO TRUE
+      *       test lecture ts vide
+           WHEN code-cics = DFHRESP(QIDERR)
+              SET b-tsq-vide TO TRUE
+              SET b-arret-o TO TRUE
+      *       test lecture ts fin
+           WHEN code-cics = DFHRESP(ENDFILE)
+              SET b-arret-o TO TRUE
+           WHEN OTHER
+              SET b-abandon-r TO TRUE
+              SET b-arret-o TO TRUE
+           END-EVALUATE.
+       lec-ts-f.
+           EXIT.
+       del-ts.
+      *     utilisation fonction delete TS
+      *       queue TR43TS
+      *       recuperation code retour code-cics
+           EXEC CICS
+                  deleteq ts
+                  queue('TR43TS')
+           END-EXEC.
+      *          test retour normal
+           IF code-cics = DFHRESP(NORMAL)
+              SET b-tsq-delete  TO TRUE
+           END-IF.
+       del-ts-f.
+           EXIT.
+

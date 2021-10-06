@@ -1,0 +1,5 @@
+ DSN S(DB2T)                                                            00010000
+ BIND PLAN(PLTR4301) MEMBER(TR43DB2A) ACT(REP) ISO(CS) RETAIN -         00020004
+      QUALIFIER(TRAIN43) OWNER(TRAIN43)                                 00021004
+ END                                                                    00022000
+
